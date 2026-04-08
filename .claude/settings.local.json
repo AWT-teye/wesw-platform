@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/we)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/we/pledge/1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/we/pledge/101)",
+      "Bash(npm install:*)",
+      "Bash(curl -s -o /dev/null -w \"/we: %{http_code}\\\\n\" http://localhost:3000/we)",
+      "Bash(curl -s -o /dev/null -w \"/admin/login: %{http_code}\\\\n\" http://localhost:3000/admin/login)",
+      "Bash(curl -s -o /dev/null -w \"/admin: %{http_code}\\\\n\" http://localhost:3000/admin)",
+      "Bash(git add:*)"
+    ]
+  }
+}
