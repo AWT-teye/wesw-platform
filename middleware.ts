@@ -2,41 +2,56 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * /admin/* 라우트 보호
- * - 비로그인 → /admin/login 으로 리다이렉트
- * - 로그인했지만 admin 아님 → /admin/login?error=forbidden
- * - /admin/login 자체는 통과
+ * 1) 호스트 기반 라우팅
+ *    - we.wesw.kr        → /we 경로로 rewrite (URL은 그대로 유지)
+ *    - www.wesw.kr / wesw.kr → 기존 / 경로 유지
+ * 2) /admin/* 보호 (로그인 + admin role 필수)
  */
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const host = (request.headers.get("host") || "").toLowerCase().split(":")[0];
+  const isWeSubdomain = host === "we.wesw.kr" || host.startsWith("we.localhost");
+
+  // ─── 1) 호스트 기반 rewrite ───
+  // /admin, /api, /_next, 정적 자산은 rewrite 대상 제외
+  const isInternal =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/admin") ||
+    pathname === "/favicon.ico" ||
+    /\.[\w]+$/.test(pathname);
+
+  if (isWeSubdomain && !isInternal && !pathname.startsWith("/we")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname === "/" ? "/we" : `/we${pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // ─── 2) /admin 보호 ───
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            response = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+      }
+    );
 
-  const { pathname } = request.nextUrl;
-
-  // /admin/login 은 보호 대상에서 제외
-  if (pathname === "/admin/login") return response;
-
-  if (pathname.startsWith("/admin")) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -48,7 +63,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // admin role 확인
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -66,6 +80,7 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// 모든 요청 통과시키되 내부 자산은 제외 (호스트 라우팅 때문에 /admin 외의 경로도 매칭 필요)
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
