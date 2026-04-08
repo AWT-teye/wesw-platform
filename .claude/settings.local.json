@@ -8,7 +8,14 @@
       "Bash(curl -s -o /dev/null -w \"/we: %{http_code}\\\\n\" http://localhost:3000/we)",
       "Bash(curl -s -o /dev/null -w \"/admin/login: %{http_code}\\\\n\" http://localhost:3000/admin/login)",
       "Bash(curl -s -o /dev/null -w \"/admin: %{http_code}\\\\n\" http://localhost:3000/admin)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(curl -s -o /dev/null -w \"/admin/carousel: %{http_code}\\\\n\" http://localhost:3000/admin/carousel)",
+      "Bash(curl -s -o /dev/null -w \"/admin/blocks/we_slogan: %{http_code}\\\\n\" http://localhost:3000/admin/blocks/we_slogan)",
+      "Bash(curl -s -o /dev/null -w \"/admin/policies?level=1: %{http_code}\\\\n\" \"http://localhost:3000/admin/policies?level=1\")",
+      "Bash(curl -s -o /dev/null -w \"/admin/candidate: %{http_code}\\\\n\" http://localhost:3000/admin/candidate)",
+      "Bash(curl -s -o /dev/null -w \"/admin/candidate/sns: %{http_code}\\\\n\" http://localhost:3000/admin/candidate/sns)"
     ]
   }
 }
