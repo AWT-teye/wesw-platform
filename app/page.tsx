@@ -76,16 +76,16 @@ export default function Home() {
   }
 
   return (
-    <div className={darkMode ? 'bg-gray-950 text-gray-100 min-h-screen' : 'bg-gray-100 text-gray-900 min-h-screen'}>
+    <div className={darkMode ? 'bg-[#0a0a0a] text-gray-100 min-h-screen' : 'bg-white text-gray-900 min-h-screen'}>
 
       {/* 상단 헤더 */}
-      <header className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 py-2`}>
+      <header className={`${darkMode ? 'bg-gray-900/80 backdrop-blur border-gray-800' : 'bg-white/80 backdrop-blur border-gray-200'} border-b px-4 py-2 sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
 
           {/* 좌측 로고 */}
           <div className="flex-shrink-0">
             <Link href="/">
-              <p className="text-lg font-bold text-orange-400">우리는 수원입니다.</p>
+              <p className="text-lg font-bold text-orange-500">우리는 수원입니다.</p>
               <p className="text-xs text-gray-400">우리는 가능성을 발굴하고 행복을 추구합니다.</p>
             </Link>
           </div>
@@ -134,117 +134,187 @@ export default function Home() {
         </div>
       </header>
 
+      {/* 히어로 섹션 */}
+      <section className="relative overflow-hidden bg-[#0a0a0a]">
+        {/* 배경 장식 */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-orange-600/5 rounded-full blur-3xl" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 py-20 md:py-28 text-center">
+          <p className="text-orange-500 text-sm font-semibold tracking-widest uppercase mb-4">WE SUWON</p>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6">
+            모든 가능성을,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">모두에게</span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-400 mb-10">
+            정희윤이 만드는 <span className="text-orange-400 font-semibold">수원 9.0</span>
+          </p>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <Link
+              href="/we/pledge"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-orange-500/25"
+            >
+              공약 보기
+            </Link>
+            <Link
+              href="/we/supporters"
+              className="px-8 py-3 border-2 border-orange-500 text-orange-400 hover:bg-orange-500/10 font-bold rounded-lg text-base transition-colors"
+            >
+              서포터즈 신청
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 수원 현황 숫자 카드 섹션 */}
+      <section className={darkMode ? 'bg-gray-900/50 border-y border-gray-800' : 'bg-[#f8f8f8] border-y border-gray-200'}>
+        <div className="max-w-7xl mx-auto px-4 py-10">
+          <p className={`text-center text-xs font-semibold tracking-widest uppercase mb-6 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            수원, 지금 이 순간
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* 재정자립도 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border rounded-xl p-5 text-center group hover:border-orange-500/50 transition-colors`}>
+              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>재정자립도</p>
+              <p className="text-3xl md:text-4xl font-extrabold text-orange-500 mb-1">38.17<span className="text-lg">%</span></p>
+              <p className="text-xs text-red-400 font-medium">↓ 89%에서 하락</p>
+            </div>
+            {/* 합계출산율 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border rounded-xl p-5 text-center group hover:border-orange-500/50 transition-colors`}>
+              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>합계출산율</p>
+              <p className="text-3xl md:text-4xl font-extrabold text-orange-500 mb-1">0.71<span className="text-lg">명</span></p>
+              <p className="text-xs text-red-400 font-medium">위기 수준</p>
+            </div>
+            {/* 청년인구 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border rounded-xl p-5 text-center group hover:border-orange-500/50 transition-colors`}>
+              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>청년인구</p>
+              <p className="text-2xl md:text-3xl font-extrabold text-orange-500 mb-1">순유출</p>
+              <p className="text-xs text-red-400 font-medium">진행중</p>
+            </div>
+            {/* 사회복지예산 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border rounded-xl p-5 text-center group hover:border-orange-500/50 transition-colors`}>
+              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>사회복지예산 비중</p>
+              <p className="text-3xl md:text-4xl font-extrabold text-orange-500 mb-1">42.3<span className="text-lg">%</span></p>
+              <p className="text-xs text-red-400 font-medium">강제 부담 증가</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 메인 컨텐츠 3단 레이아웃 */}
-      <div className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-12 gap-4">
+      <section className={darkMode ? 'bg-[#0a0a0a]' : 'bg-white'}>
+        <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-4">
 
-        {/* 좌측: 정취 正聚 */}
-        <aside className="col-span-12 md:col-span-3">
-          <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg p-4`}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-orange-400">📢 정취 正聚</h2>
-              <Link href="/jeongtui" className="text-xs text-gray-400 hover:text-orange-400">더보기</Link>
-            </div>
-            <div className="flex flex-col gap-4">
-              {JEONGTUI.map((item, i) => (
-                <div key={i}>
-                  <p className="text-xs text-gray-400 mb-1">{item.category}</p>
-                  <p className="text-sm hover:text-orange-400 cursor-pointer leading-snug">{item.title}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* 중앙: TOP3 + 사통팔달 */}
-        <main className="col-span-12 md:col-span-6 flex flex-col gap-4">
-
-          {/* TOP 3 */}
-          <div className="grid grid-cols-3 gap-2">
-            {TOP3.map((post, i) => (
-              <div key={i} className={`${post.bg} rounded-lg p-3 cursor-pointer hover:opacity-90 relative`}>
-                <p className="text-xs font-bold text-white mb-1">{post.rank}</p>
-                <p className="text-sm text-white font-semibold leading-snug line-clamp-3">{post.title}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-xs text-orange-300">🔥 {post.likes}</span>
-                  <span className="text-xs text-gray-300">{post.author}</span>
-                </div>
+          {/* 좌측: 정취 正聚 */}
+          <aside className="col-span-12 md:col-span-3">
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800 hover:border-orange-500/60' : 'bg-white border-gray-200 shadow-sm hover:border-orange-400'} border rounded-xl p-4 transition-colors`}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-orange-500">정취 正聚</h2>
+                <Link href="/jeongtui" className="text-xs text-gray-400 hover:text-orange-400">더보기</Link>
               </div>
-            ))}
-          </div>
-
-          {/* 사통팔달 */}
-          <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg p-4`}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-orange-400">📡 사통팔달 四通八達</h2>
-              <div className="flex gap-2">
-                <button className="text-xs bg-orange-500 text-white px-2 py-1 rounded">전체</button>
-                <button className="text-xs text-gray-400 hover:text-orange-400 px-2 py-1 rounded">인기</button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              {SATONG.map((post, i) => (
-                <div key={i} className={`${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} rounded p-2 cursor-pointer transition`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs ${post.color} text-white px-2 py-0.5 rounded`}>{post.district}</span>
-                    <span className="text-xs text-gray-400">{post.time}</span>
-                    <span className="text-xs text-orange-400">추천 {post.likes}</span>
+              <div className="flex flex-col gap-4">
+                {JEONGTUI.map((item, i) => (
+                  <div key={i}>
+                    <p className="text-xs text-gray-400 mb-1">{item.category}</p>
+                    <p className="text-sm hover:text-orange-400 cursor-pointer leading-snug">{item.title}</p>
                   </div>
-                  <p className="text-sm hover:text-orange-400">{post.title}</p>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* 중앙: TOP3 + 사통팔달 */}
+          <main className="col-span-12 md:col-span-6 flex flex-col gap-4">
+
+            {/* TOP 3 */}
+            <div className="grid grid-cols-3 gap-2">
+              {TOP3.map((post, i) => (
+                <div key={i} className={`${post.bg} rounded-xl p-3 cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all relative`}>
+                  <p className="text-xs font-bold text-white mb-1">{post.rank}</p>
+                  <p className="text-sm text-white font-semibold leading-snug line-clamp-3">{post.title}</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-orange-300">{post.likes}</span>
+                    <span className="text-xs text-gray-300">{post.author}</span>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 text-center">
-              <Link href="/board" className="text-sm text-gray-400 hover:text-orange-400">전체 게시판 보기 →</Link>
-            </div>
-          </div>
-        </main>
 
-        {/* 우측: 유저정보 + 게시판 목록 */}
-        <aside className="col-span-12 md:col-span-3 flex flex-col gap-4">
-
-          {/* 유저 정보 */}
-          <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg p-4`}>
-            {user ? (
-              <div>
-                <p className="text-sm font-bold text-orange-400 mb-1">{user.user_metadata?.full_name || user.email}</p>
-                <p className="text-xs text-gray-400 mb-2">폴코드: <span className="text-orange-400">설정 필요</span></p>
-                <p className="text-xs text-gray-400">최신 의견을 등록해보세요</p>
+            {/* 사통팔달 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800 hover:border-orange-500/60' : 'bg-white border-gray-200 shadow-sm hover:border-orange-400'} border rounded-xl p-4 transition-colors`}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-orange-500">사통팔달 四通八達</h2>
+                <div className="flex gap-2">
+                  <button className="text-xs bg-orange-500 text-white px-2 py-1 rounded">전체</button>
+                  <button className="text-xs text-gray-400 hover:text-orange-400 px-2 py-1 rounded">인기</button>
+                </div>
               </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-sm text-gray-400 mb-2">로그인하여</p>
-                <p className="text-sm text-orange-400 font-bold mb-3">[폴-코드] 뱃지를 확인하세요!</p>
-                <Link href="/auth/login" className="text-xs bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600">로그인하기</Link>
-              </div>
-            )}
-          </div>
-
-          {/* 활발한 게시판 */}
-          <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg p-4`}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-orange-400">활발한 게시판</h2>
-            </div>
-            <div className="flex flex-col gap-1">
-              {BOARDS.map((board, i) => (
-                <Link key={board.slug} href={`/board/${board.slug}`}
-                  className={`flex items-center justify-between py-1 px-2 rounded text-sm hover:text-orange-400 ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'} transition`}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-xs w-4">{i + 1}</span>
-                    <span>{board.name}</span>
+              <div className="flex flex-col gap-3">
+                {SATONG.map((post, i) => (
+                  <div key={i} className={`${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} rounded-lg p-2 cursor-pointer transition`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs ${post.color} text-white px-2 py-0.5 rounded`}>{post.district}</span>
+                      <span className="text-xs text-gray-400">{post.time}</span>
+                      <span className="text-xs text-orange-400">추천 {post.likes}</span>
+                    </div>
+                    <p className="text-sm hover:text-orange-400">{post.title}</p>
                   </div>
-                  {board.dot && <span className="w-2 h-2 bg-orange-500 rounded-full"></span>}
-                </Link>
-              ))}
+                ))}
+              </div>
+              <div className="mt-4 text-center">
+                <Link href="/board" className="text-sm text-gray-400 hover:text-orange-400">전체 게시판 보기 →</Link>
+              </div>
             </div>
-            <div className="mt-3 text-center">
-              <Link href="/boards" className="text-xs text-gray-400 hover:text-orange-400">전체 게시판 리스트 보기</Link>
+          </main>
+
+          {/* 우측: 유저정보 + 게시판 목록 */}
+          <aside className="col-span-12 md:col-span-3 flex flex-col gap-4">
+
+            {/* 유저 정보 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800 hover:border-orange-500/60' : 'bg-white border-gray-200 shadow-sm hover:border-orange-400'} border rounded-xl p-4 transition-colors`}>
+              {user ? (
+                <div>
+                  <p className="text-sm font-bold text-orange-400 mb-1">{user.user_metadata?.full_name || user.email}</p>
+                  <p className="text-xs text-gray-400 mb-2">폴코드: <span className="text-orange-400">설정 필요</span></p>
+                  <p className="text-xs text-gray-400">최신 의견을 등록해보세요</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-gray-400 mb-2">로그인하여</p>
+                  <p className="text-sm text-orange-400 font-bold mb-3">[폴-코드] 뱃지를 확인하세요!</p>
+                  <Link href="/auth/login" className="text-xs bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600">로그인하기</Link>
+                </div>
+              )}
             </div>
-          </div>
-        </aside>
-      </div>
+
+            {/* 활발한 게시판 */}
+            <div className={`${darkMode ? 'bg-gray-900 border-gray-800 hover:border-orange-500/60' : 'bg-white border-gray-200 shadow-sm hover:border-orange-400'} border rounded-xl p-4 transition-colors`}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-orange-500">활발한 게시판</h2>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {BOARDS.map((board, i) => (
+                  <Link key={board.slug} href={`/board/${board.slug}`}
+                    className={`flex items-center justify-between py-1.5 px-2 rounded-lg text-sm hover:text-orange-400 ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-orange-50'} transition-all group`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs w-5 text-center rounded ${i < 3 ? 'bg-orange-500 text-white font-bold' : 'text-gray-500'}`}>{i + 1}</span>
+                      <span className="group-hover:translate-x-0.5 transition-transform">{board.name}</span>
+                    </div>
+                    {board.dot && <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>}
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-3 text-center">
+                <Link href="/boards" className="text-xs text-gray-400 hover:text-orange-400">전체 게시판 리스트 보기</Link>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
 
       {/* 푸터 */}
-      <footer className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-t mt-8 py-4 text-center text-xs text-gray-500`}>
+      <footer className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-[#f8f8f8] border-gray-200'} border-t py-6 text-center text-xs text-gray-500`}>
         © 2026 WE SUWON · 우리는 수원입니다 · 개혁신당 수원시당 시민 플랫폼
       </footer>
     </div>

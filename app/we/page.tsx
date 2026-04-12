@@ -96,6 +96,8 @@ export default async function WeMainPage() {
 
   return (
     <>
+      <HeroSection />
+      <StatsSection />
       <CarouselSection slides={data.slides} />
       <CampIntroSection block={data.intro} />
       <NoticesSection notices={data.notices} />
@@ -112,6 +114,73 @@ export default async function WeMainPage() {
 // ──────────────────────────────────────────────────────────
 // 섹션들
 // ──────────────────────────────────────────────────────────
+
+function HeroSection() {
+  return (
+    <section className="relative overflow-hidden bg-[#0a0a0a]">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FF6B00]/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#FF6B00]/5 rounded-full blur-3xl" />
+      </div>
+      <div className="relative mx-auto max-w-5xl px-4 py-24 md:py-32 text-center">
+        <p className="text-[#FF6B00] text-sm font-semibold tracking-widest uppercase mb-4">WE SUWON</p>
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6">
+          모든 가능성을,<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#ff8a3d]">모두에게</span>
+        </h1>
+        <p className="text-lg md:text-xl text-gray-400 mb-10">
+          정희윤이 만드는 <span className="text-[#FF6B00] font-semibold">수원 9.0</span>
+        </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <Link
+            href="/we/pledge"
+            className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
+          >
+            공약 보기
+          </Link>
+          <Link
+            href="/we/supporters"
+            className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors"
+          >
+            서포터즈 신청
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatsSection() {
+  const stats = [
+    { label: "재정자립도", value: "38.17", unit: "%", sub: "↓ 89%에서 하락" },
+    { label: "합계출산율", value: "0.71", unit: "명", sub: "위기 수준" },
+    { label: "청년인구", value: "순유출", unit: "", sub: "진행중" },
+    { label: "사회복지예산 비중", value: "42.3", unit: "%", sub: "강제 부담 증가" },
+  ];
+  return (
+    <section className="w-full border-y border-gray-200 bg-[#f8f8f8]">
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <p className="text-center text-xs font-semibold tracking-widest uppercase mb-6 text-gray-400">
+          수원, 지금 이 순간
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className="rounded-xl border border-gray-200 bg-white p-5 text-center hover:border-[#FF6B00] transition-colors"
+            >
+              <p className="text-xs mb-2 text-gray-400">{s.label}</p>
+              <p className={`font-extrabold text-[#FF6B00] mb-1 ${s.unit ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl"}`}>
+                {s.value}{s.unit && <span className="text-lg">{s.unit}</span>}
+              </p>
+              <p className="text-xs text-red-500 font-medium">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function CarouselSection({
   slides,
@@ -149,12 +218,14 @@ function CarouselSection({
 
 function CampIntroSection({ block }: { block: { title: string | null; body_html: string | null } | null }) {
   return (
-    <section aria-label="선거캠프 소개" className="mx-auto max-w-3xl px-4 py-10 md:py-14">
+    <section aria-label="선거캠프 소개" className="w-full bg-white py-10 md:py-14">
+      <div className="mx-auto max-w-3xl px-4">
       <h2 className="mb-3 text-xl font-extrabold md:text-2xl">{block?.title ?? "수원 9.0캠프"}</h2>
       <div
-        className="prose prose-sm max-w-none text-sm leading-relaxed text-gray-700 md:text-base"
+        className="prose prose-sm max-w-none text-sm leading-relaxed text-gray-700 md:text-base [&_*]:whitespace-pre-line"
         dangerouslySetInnerHTML={{ __html: block?.body_html ?? "<p>백오피스에서 캠프 소개를 입력하세요.</p>" }}
       />
+      </div>
     </section>
   );
 }
@@ -165,7 +236,8 @@ function NoticesSection({
   notices: { id: string; title: string; created_at: string; is_pinned: boolean }[];
 }) {
   return (
-    <section aria-label="한마디 공지" className="mx-auto max-w-3xl px-4 py-8 md:py-10">
+    <section aria-label="한마디 공지" className="w-full bg-[#f8f8f8] py-8 md:py-10">
+      <div className="mx-auto max-w-3xl px-4">
       <h2 className="mb-4 text-xl font-extrabold md:text-2xl">한마디</h2>
       {notices.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
@@ -175,7 +247,7 @@ function NoticesSection({
         <ul className="flex flex-col gap-3">
           {notices.map((n) => (
             <li key={n.id}>
-              <Link href="/we/supporters" className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:border-[#FF6B00] hover:shadow-md">
+              <Link href="/we/supporters" className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-[#FF6B00] hover:shadow-md transition-colors">
                 <span className="text-xs font-medium text-gray-500">
                   {new Date(n.created_at).toLocaleDateString("ko-KR")}
                   {n.is_pinned && " · 📌 고정"}
@@ -186,6 +258,7 @@ function NoticesSection({
           ))}
         </ul>
       )}
+      </div>
     </section>
   );
 }
@@ -196,7 +269,7 @@ function SloganSection({ block }: { block: { body_html: string | null } | null }
       <div className="mx-auto max-w-3xl px-4 text-center">
         <p className="text-sm font-semibold uppercase tracking-widest opacity-80">Slogan</p>
         <div
-          className="prose prose-invert mt-3 max-w-none text-3xl font-black leading-tight md:text-5xl"
+          className="prose prose-invert mt-3 max-w-none text-3xl font-black leading-tight md:text-5xl [&_*]:whitespace-pre-line"
           dangerouslySetInnerHTML={{ __html: block?.body_html ?? "<p>모든 가능성을, 모두에게.<br/>우리는 수원입니다.</p>" }}
         />
       </div>
@@ -208,7 +281,8 @@ type Pledge = { id: string; title: string; content: string | null; parent_id?: s
 
 function BigPledgesSection({ items }: { items: Pledge[] }) {
   return (
-    <section aria-label="대공약" className="mx-auto max-w-5xl px-4 py-12 md:py-16">
+    <section aria-label="대공약" className="w-full bg-white py-12 md:py-16">
+      <div className="mx-auto max-w-5xl px-4">
       <h2 className="mb-6 text-xl font-extrabold md:text-2xl">대공약</h2>
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
@@ -235,6 +309,7 @@ function BigPledgesSection({ items }: { items: Pledge[] }) {
           ))}
         </ul>
       )}
+      </div>
     </section>
   );
 }
@@ -252,7 +327,7 @@ function MidPledgesSection({ items }: { items: Pledge[] }) {
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map((p) => (
               <li key={p.id} className="group relative">
-                <Link href={`/we/pledge/${p.id}`} className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-[#FF6B00] hover:shadow-md">
+                <Link href={`/we/pledge/${p.id}`} className="block rounded-xl border border-gray-200 bg-white p-4 hover:border-[#FF6B00] hover:shadow-md transition-colors">
                   <p className="text-sm font-bold md:text-base">{p.title}</p>
                   {p.content && <p className="mt-1 text-xs text-gray-500 line-clamp-2">{p.content}</p>}
                 </Link>
@@ -267,7 +342,8 @@ function MidPledgesSection({ items }: { items: Pledge[] }) {
 
 function DetailPledgesSection({ items }: { items: Pledge[] }) {
   return (
-    <section aria-label="세부공약" className="mx-auto max-w-5xl px-4 py-12 md:py-16">
+    <section aria-label="세부공약" className="w-full bg-white py-12 md:py-16">
+      <div className="mx-auto max-w-5xl px-4">
       <h2 className="mb-6 text-xl font-extrabold md:text-2xl">세부공약</h2>
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
@@ -277,20 +353,22 @@ function DetailPledgesSection({ items }: { items: Pledge[] }) {
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
           {items.map((p) => (
             <li key={p.id}>
-              <Link href={`/we/pledge/${p.id}`} className="block rounded-md border border-gray-200 bg-white p-3 text-sm hover:border-[#FF6B00] hover:bg-[#FF6B00]/5">
+              <Link href={`/we/pledge/${p.id}`} className="block rounded-xl border border-gray-200 bg-white p-3 text-sm hover:border-[#FF6B00] hover:bg-[#FF6B00]/5 transition-colors">
                 {p.title}
               </Link>
             </li>
           ))}
         </ul>
       )}
+      </div>
     </section>
   );
 }
 
 function ProposeSection() {
   return (
-    <section aria-label="공약제안" className="mx-auto max-w-3xl px-4 py-12 md:py-16">
+    <section aria-label="공약제안" className="w-full bg-[#f8f8f8] py-12 md:py-16">
+      <div className="mx-auto max-w-3xl px-4">
       <h2 className="mb-4 text-xl font-extrabold md:text-2xl">공약제안</h2>
       <div role="alert" className="mb-5 rounded-lg border-2 border-red-600 bg-red-50 p-4 text-sm text-red-700">
         <strong className="block font-bold">⚠️ 선거법 안내</strong>
@@ -299,6 +377,7 @@ function ProposeSection() {
       <Link href="/we/propose" className="inline-flex items-center justify-center rounded-lg bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white hover:opacity-90 md:text-base">
         공약 제안하러 가기 →
       </Link>
+      </div>
     </section>
   );
 }
@@ -314,7 +393,7 @@ function FooterSection({ block }: { block: { title: string | null; body_html: st
         <div className="mb-4 rounded border border-gray-700 p-3 text-gray-400">
           <p className="font-semibold text-gray-300">{block?.title ?? "선거관리위원회 의무표시"}</p>
           <div
-            className="prose prose-invert mt-1 max-w-none text-xs"
+            className="prose prose-invert mt-1 max-w-none text-xs [&_*]:whitespace-pre-line"
             dangerouslySetInnerHTML={{ __html: block?.body_html ?? "<p>(백오피스에서 편집)</p>" }}
           />
         </div>
