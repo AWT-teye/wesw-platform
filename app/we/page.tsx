@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import CrisisSection from "@/components/we/CrisisSection";
+import FactCheckSection from "@/components/we/FactCheckSection";
 
 /**
  * we.wesw.kr 메인페이지
@@ -18,12 +20,16 @@ async function fetchAll() {
   const [
     slides,
     intro,
+    crisisStats,
+    opportunityCycle,
+    campClosing,
     notices,
     slogan,
     bigPledges,
     midPledges,
     detailPledges,
     footer,
+    factChecks,
   ] = await Promise.all([
     supabase
       .from("hero_slides")
@@ -35,6 +41,21 @@ async function fetchAll() {
       .from("content_blocks")
       .select("title, body_html")
       .eq("slug", "we_camp_intro")
+      .maybeSingle(),
+    supabase
+      .from("content_blocks")
+      .select("body_html")
+      .eq("slug", "we_crisis_stats")
+      .maybeSingle(),
+    supabase
+      .from("content_blocks")
+      .select("body_html")
+      .eq("slug", "we_opportunity_cycle")
+      .maybeSingle(),
+    supabase
+      .from("content_blocks")
+      .select("title, body_html")
+      .eq("slug", "we_camp_closing")
       .maybeSingle(),
     supabase
       .from("announcements")
@@ -74,17 +95,28 @@ async function fetchAll() {
       .select("title, body_html")
       .eq("slug", "we_footer_legal")
       .maybeSingle(),
+    supabase
+      .from("fact_checks")
+      .select("id, type, claim, truth, source")
+      .eq("is_active", true)
+      .order("order_num", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(3),
   ]);
 
   return {
     slides: slides.data ?? [],
     intro: intro.data,
+    crisisStats: crisisStats.data,
+    opportunityCycle: opportunityCycle.data,
+    campClosing: campClosing.data,
     notices: notices.data ?? [],
     slogan: slogan.data,
     bigPledges: bigPledges.data ?? [],
     midPledges: midPledges.data ?? [],
     detailPledges: detailPledges.data ?? [],
     footer: footer.data,
+    factChecks: factChecks.data ?? [],
   };
 }
 
@@ -99,7 +131,13 @@ export default async function WeMainPage() {
       <HeroSection />
       <StatsSection />
       <CarouselSection slides={data.slides} />
-      <CampIntroSection block={data.intro} />
+      <CrisisSection
+        intro={data.intro}
+        statsJson={data.crisisStats?.body_html ?? null}
+        cycleJson={data.opportunityCycle?.body_html ?? null}
+        closing={data.campClosing}
+      />
+      <FactCheckSection items={data.factChecks} />
       <NoticesSection notices={data.notices} />
       <SloganSection block={data.slogan} />
       <BigPledgesSection items={data.bigPledges} />
@@ -216,19 +254,6 @@ function CarouselSection({
   );
 }
 
-function CampIntroSection({ block }: { block: { title: string | null; body_html: string | null } | null }) {
-  return (
-    <section aria-label="선거캠프 소개" className="w-full bg-white py-10 md:py-14">
-      <div className="mx-auto max-w-3xl px-4">
-      <h2 className="mb-3 text-xl font-extrabold md:text-2xl">{block?.title ?? "수원 9.0캠프"}</h2>
-      <div
-        className="prose prose-sm max-w-none text-sm leading-relaxed text-gray-700 md:text-base [&_*]:whitespace-pre-line"
-        dangerouslySetInnerHTML={{ __html: block?.body_html ?? "<p>백오피스에서 캠프 소개를 입력하세요.</p>" }}
-      />
-      </div>
-    </section>
-  );
-}
 
 function NoticesSection({
   notices,

@@ -2,7 +2,11 @@ import Link from "next/link";
 
 const ITEMS = [
   { href: "/admin/carousel", title: "캐러셀 관리", desc: "메인 히어로 슬라이드 5장" },
-  { href: "/admin/blocks/we_camp_intro", title: "선거캠프 소개 편집", desc: "캠프 소개 본문" },
+  { href: "/admin/blocks/we_camp_intro", title: "위기 대시보드 — 인트로", desc: "제목 + 소개 텍스트" },
+  { href: "/admin/blocks/we_crisis_stats", title: "위기 대시보드 — 데이터 카드", desc: "6개 위기 지표 JSON" },
+  { href: "/admin/blocks/we_opportunity_cycle", title: "위기 대시보드 — 악순환 고리", desc: "6단계 순환 구조 JSON" },
+  { href: "/admin/blocks/we_camp_closing", title: "위기 대시보드 — 클로징", desc: "마무리 슬로건" },
+  { href: "/admin/factcheck", title: "팩트체크 관리", desc: "주장반박/데이터폭로/정책비판" },
   { href: "/admin/announcements", title: "한마디 관리", desc: "공지/한마디 카드" },
   { href: "/admin/blocks/we_slogan", title: "슬로건 편집", desc: "메인 슬로건 텍스트" },
   { href: "/admin/policies?level=1", title: "대공약 관리", desc: "1단계 핵심 공약" },
