@@ -25,7 +25,7 @@ async function fetchAllowedDistricts(): Promise<string[]> {
 export async function createPropose(input: ProposeInput) {
   const content = input.content.trim();
   if (!content) return { error: "내용을 입력해 주세요." };
-  if (content.length > 100) return { error: "100자 이내로 작성해 주세요." };
+  if (content.length > 500) return { error: "500자 이내로 작성해 주세요." };
 
   const allowed = await fetchAllowedDistricts();
   if (!allowed.includes(input.district)) {

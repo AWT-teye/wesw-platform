@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createPropose } from "./actions";
 
-const MAX_LEN = 100;
+const MAX_LEN = 500;
 
 export default function ProposeForm({
   districts,
@@ -29,7 +29,7 @@ export default function ProposeForm({
       return;
     }
     if (trimmed.length > MAX_LEN) {
-      setMsg({ type: "error", text: "100자 이내로 작성해 주세요." });
+      setMsg({ type: "error", text: "500자 이내로 작성해 주세요." });
       return;
     }
     if (!district) {
@@ -85,7 +85,7 @@ export default function ProposeForm({
         className="mt-5 block text-sm font-semibold"
         htmlFor="propose-content"
       >
-        제안 내용 (100자 이내)
+        제안 내용 (500자 이내)
       </label>
       <textarea
         id="propose-content"
@@ -93,7 +93,7 @@ export default function ProposeForm({
         maxLength={MAX_LEN + 20}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="수원을 위한 정책 제안을 100자 이내로 정중히 작성해 주세요."
+        placeholder="수원을 위한 정책 제안을 500자 이내로 정중히 작성해 주세요."
         className={`mt-2 w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
           over
             ? "border-red-500 focus:ring-red-300"
