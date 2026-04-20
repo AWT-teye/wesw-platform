@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { applyObserver, RESIDENCE_OPTIONS, type Residence } from "./actions";
+import { applyObserver } from "./actions";
+import {
+  RESIDENCE_OPTIONS,
+  formatResidenceLabel,
+  type Residence,
+} from "./constants";
 
 export type Station = {
   id: string;
@@ -374,19 +379,4 @@ function ApplyModal({
       </div>
     </div>
   );
-}
-
-function formatResidenceLabel(r: Residence): string {
-  switch (r) {
-    case "수원시권선구":
-      return "수원시 권선구";
-    case "수원시영통구":
-      return "수원시 영통구";
-    case "수원시장안구":
-      return "수원시 장안구";
-    case "수원시팔달구":
-      return "수원시 팔달구";
-    case "수원외":
-      return "수원 외";
-  }
 }

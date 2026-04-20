@@ -2,15 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-export const RESIDENCE_OPTIONS = [
-  "수원시권선구",
-  "수원시영통구",
-  "수원시장안구",
-  "수원시팔달구",
-  "수원외",
-] as const;
-export type Residence = (typeof RESIDENCE_OPTIONS)[number];
+import { RESIDENCE_OPTIONS, type Residence } from "./constants";
 
 export type ObserverApplyInput = {
   station_id: string;
