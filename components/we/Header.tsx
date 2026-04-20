@@ -14,7 +14,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/we/intro", label: "후보소개" },
   { href: "/we/pledge", label: "후보공약" },
   { href: "/we/sns", label: "후보SNS" },
-  { href: "/we/supporters", label: "서포터즈신청" },
+  {
+    href: "https://forms.gle/E6upekzVEfzZHwP76",
+    label: "서포터즈신청",
+    external: true,
+  },
   { href: "/we/propose", label: "공약제안" },
   { href: "/we/organization", label: "조직도 및 연락처" },
 ];
@@ -42,16 +46,28 @@ export default function Header() {
         {/* 데스크탑 GNB */}
         <nav aria-label="주 메뉴" className="hidden md:block">
           <ul className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="rounded-md px-3 py-2 text-sm font-semibold text-[#1a1a1a] hover:text-[#FF6B00] hover:underline hover:underline-offset-8 hover:decoration-[#FF6B00] hover:decoration-2"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const cls =
+                "rounded-md px-3 py-2 text-sm font-semibold text-[#1a1a1a] hover:text-[#FF6B00] hover:underline hover:underline-offset-8 hover:decoration-[#FF6B00] hover:decoration-2";
+              return (
+                <li key={item.href}>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cls}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className={cls}>
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
 

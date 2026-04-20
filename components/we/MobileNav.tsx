@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 
-export type NavItem = { href: string; label: string };
+export type NavItem = { href: string; label: string; external?: boolean };
 
 type Props = {
   open: boolean;
@@ -85,17 +85,33 @@ export default function MobileNav({ open, onClose, items }: Props) {
 
         <nav className="px-2 py-3">
           <ul className="flex flex-col">
-            {items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className="block rounded-md px-4 py-3 text-base font-medium text-[#1a1a1a] hover:bg-[#FF6B00]/10 hover:text-[#FF6B00]"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {items.map((item) => {
+              const cls =
+                "block rounded-md px-4 py-3 text-base font-medium text-[#1a1a1a] hover:bg-[#FF6B00]/10 hover:text-[#FF6B00]";
+              return (
+                <li key={item.href}>
+                  {item.external ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={onClose}
+                      className={cls}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cls}
+                    >
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </aside>

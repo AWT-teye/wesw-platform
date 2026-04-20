@@ -196,12 +196,14 @@ function HeroSection() {
           >
             공약 보기
           </Link>
-          <Link
-            href="/we/supporters"
+          <a
+            href="https://forms.gle/E6upekzVEfzZHwP76"
+            target="_blank"
+            rel="noopener noreferrer"
             className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors"
           >
             서포터즈 신청
-          </Link>
+          </a>
         </div>
       </div>
     </section>
