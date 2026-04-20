@@ -338,3 +338,66 @@ is_featured   boolean DEFAULT false -- 상언격쟁 자동 노출
 - 모든 컴포넌트 mobile-first 설계
 - QR코드 접속 기준 퍼포먼스 최적화
 - 터치 인터랙션 최적화
+
+---
+
+## 12. 개발 진행 현황 (2026-04-21 기준)
+
+### we.wesw.kr 완성된 페이지
+| 경로 | 설명 |
+|------|------|
+| `app/we/page.tsx` | 메인페이지 — 히어로, 통계, 캐러셀, 위기 대시보드, 팩트체크, 한마디, 슬로건, 대/중/세부 공약, 공약제안 CTA, 푸터, 팝업 |
+| `app/we/intro/page.tsx` | 후보소개 — 프로필 카드(사진·인적사항) + 스토리 3섹션 |
+| `app/we/pledge/page.tsx` | 후보공약 목록 |
+| `app/we/pledge/[id]/page.tsx` | 공약 상세 페이지 (OG 이미지 공유용) |
+| `app/we/sns/page.tsx` | 후보 SNS |
+| `app/we/supporters/` | **외부 구글폼 연결** → `https://forms.gle/E6upekzVEfzZHwP76` (Header·MobileNav·히어로 CTA 모두 `target="_blank"`) |
+| `app/we/propose/page.tsx` | 공약제안 — 500자 제한, 거주지역 선택, 선거법 경고 레드박스, 백오피스 편집 가능한 상단 콘텐츠 |
+| `app/we/observers/page.tsx` | 참관인 신청 — 구 탭, 투표소별 2인 정원, 당원 체크, 거주지, 개인정보 동의 모달 |
+| `app/we/factcheck/page.tsx` | 팩트체크 전체 목록 (주장반박/데이터폭로/정책비판) |
+| `app/we/organization/page.tsx` | 조직도 및 연락처 |
+
+### 백오피스 완성 메뉴 (`/admin/*`)
+| 분류 | 메뉴 |
+|------|------|
+| 메인 비주얼 | 메인 팝업, 캐러셀 |
+| 위기 대시보드 | 인트로 / 데이터 카드(JSON) / 악순환 고리(JSON) / 클로징 |
+| 공약 콘텐츠 | 팩트체크, 한마디, 슬로건, 대공약, 중공약, 세부공약 |
+| 후보 | 후보소개(프로필·스토리), SNS 링크, 조직도 |
+| 커뮤니티 | 공약제안 관리, 공약제안 상단(편집), 거주지역 선택지 |
+| 참관인 | 참관인 신청 관리(투표소 CRUD + 신청자 상태/삭제) |
+| 기타 | 푸터(선관위 의무표시) |
+
+### Supabase 마이그레이션 적용 현황
+| 파일 | 상태 | 비고 |
+|------|------|------|
+| `00001_helpers` ~ `00012_we_seed_data` | ✅ 적용 | 기본 스키마·시드 |
+| `00013_fact_checks.sql` | ❌ 미적용 | 팩트체크 페이지 사용 시 적용 필요 |
+| `00014_we_popup_seed.sql` | ❌ 미적용 | 메인 팝업 사용 시 적용 필요 |
+| `00015_propose_suggestions.sql` | ✅ 적용 | 공약제안 테이블·RLS |
+| `00016_propose_intro_seed.sql` | ✅ 적용 | 공약제안 상단/거주지역 content_blocks |
+| `00017_propose_content_500.sql` | ✅ 적용 | 100자 → 500자 확장 |
+| `00018_observers.sql` | ✅ 적용 | 초기 참관인 스키마 (트리거 포함, 이후 clean으로 대체) |
+| `00019_observers_clean.sql` | ✅ 적용 | 트리거 제거·시드 정리판 |
+| `00020_observers_update.sql` | ✅ 적용 | residence / is_party_member 컬럼 추가 |
+| `00021_observer_counts_rpc.sql` | ✅ 적용 | 실시간 카운트 RPC (`get_polling_station_counts`, `get_station_active_count`) |
+| `00022_candidate_profile.sql` | ⏳ 필요 | 후보소개 profile_json / stories_json — `/we/intro` 사용 시 적용 필요 |
+
+### 완성된 주요 기능
+1. **서포터즈 신청** — 구글폼 외부 링크로 전환 (내부 DB 불필요)
+2. **참관인 신청 시스템**
+   - 투표소 관리 (구별 가나다순 탭, 추가·인라인 수정·삭제)
+   - 신청자 관리 (성명/연락처/거주지/당원여부/투표소/신청일/상태)
+   - 상태 변경 (대기/확정/취소), 취소 시 공석 자동 복구
+   - 당원만 신청 가능 (체크박스 미체크 시 차단 + 안내)
+   - 신청현황 실시간 집계 (RPC)
+3. **팩트체크 게시판** — 주장반박·데이터폭로·정책비판 3유형
+4. **공약제안 게시판** — 500자 제한, 거주지역 선택, 선거법 경고, 상단 문구 백오피스 편집
+5. **팝업 시스템** — 메인 진입 시 팝업 (제목·본문·버튼텍스트·버튼링크), 백오피스 on/off
+6. **후보소개 페이지** — 프로필 카드 + 인적사항 9필드 + 스토리 3섹션 편집
+
+### 주요 아키텍처 결정
+- **서포터즈**는 DB 저장 포기, 구글폼 위탁 (운영 편의성)
+- **참관인 카운트**는 트리거 대신 `SECURITY DEFINER` RPC 사용 (PL/pgSQL 달러 인용 이슈 회피, PII 보호)
+- **상단 안내/거주지역 선택지** 같은 UI 텍스트는 `content_blocks` 테이블에 json으로 저장해 비개발자 편집 가능
+- **후보 프로필**은 컬럼 난립 대신 `profile_json` / `stories_json` jsonb로 구조화
