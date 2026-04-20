@@ -16,6 +16,7 @@ const ITEMS = [
   { href: "/admin/candidate", title: "후보 소개 편집", desc: "정희윤 프로필" },
   { href: "/admin/candidate/sns", title: "SNS 링크 관리", desc: "후보 SNS 채널" },
   { href: "/admin/org", title: "조직도/연락처 관리", desc: "캠프 조직도 멤버" },
+  { href: "/admin/propose", title: "공약제안 관리", desc: "시민 제안 확인/부적절 게시물 삭제" },
   { href: "/admin/blocks/we_footer_legal", title: "푸터 편집", desc: "선관위 의무표시" },
 ];
 
