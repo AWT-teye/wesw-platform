@@ -68,26 +68,26 @@ export default async function IntroPage() {
         </div>
 
         {/* 프로필 카드 */}
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col md:flex-row">
-            {/* 사진: 모바일 전체폭, PC 300px 고정 */}
-            <div className="md:w-[300px] md:shrink-0">
+        <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col items-start gap-5 p-5 md:flex-row md:gap-8 md:p-8">
+            {/* 사진: 3/4 비율 고정, 최대 280px, 모바일 중앙정렬 */}
+            <div className="mx-auto aspect-[3/4] w-full max-w-[280px] overflow-hidden rounded-xl md:mx-0 md:shrink-0">
               {photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={photoUrl}
                   alt={`${name} 후보 프로필 사진`}
-                  className="h-auto w-full object-cover md:h-full"
+                  className="h-full w-full object-cover object-top"
                 />
               ) : (
-                <div className="flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br from-[#FF6B00]/20 to-[#FF6B00]/5 text-xs text-gray-500 md:aspect-auto md:h-full">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#FF6B00]/20 to-[#FF6B00]/5 text-xs text-gray-500">
                   프로필 사진 준비 중
                 </div>
               )}
             </div>
 
             {/* 인적사항 */}
-            <div className="flex-1 p-5 md:p-8">
+            <div className="w-full flex-1 min-w-0">
               <h2 className="text-2xl font-extrabold md:text-3xl">{name}</h2>
               {profile.title && (
                 <p className="mt-1 text-sm font-semibold text-[#FF6B00]">
