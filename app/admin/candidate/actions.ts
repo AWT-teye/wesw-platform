@@ -14,11 +14,47 @@ export type CandidateInput = {
   vision: string;
   slogan: string;
   office_info: string;
+  // 후보소개 페이지용 프로필
+  profile_title: string;
+  profile_birth: string;
+  profile_hometown: string;
+  profile_residence: string;
+  profile_military: string;
+  profile_election: string;
+  profile_education: string;
+  profile_awards: string;
+  profile_career: string;
+  // 스토리 3섹션
+  story1_title: string;
+  story1_body: string;
+  story2_title: string;
+  story2_body: string;
+  story3_title: string;
+  story3_body: string;
 };
 
 export async function saveCandidate(input: CandidateInput) {
   const supabase = await createClient();
   const candidate = await getOrCreatePrimaryCandidate();
+
+  const profile_json = {
+    title: input.profile_title || "",
+    birth: input.profile_birth || "",
+    hometown: input.profile_hometown || "",
+    residence: input.profile_residence || "",
+    military: input.profile_military || "",
+    election: input.profile_election || "",
+    education: input.profile_education || "",
+    awards: input.profile_awards || "",
+    career: input.profile_career || "",
+  };
+
+  const stories_json = [
+    { title: input.story1_title || "", body: input.story1_body || "" },
+    { title: input.story2_title || "", body: input.story2_body || "" },
+    { title: input.story3_title || "", body: input.story3_body || "" },
+  ].filter((s) => s.title || s.body);
+
   const { error } = await supabase
     .from("candidates")
     .update({
@@ -31,11 +67,14 @@ export async function saveCandidate(input: CandidateInput) {
       vision: input.vision || null,
       slogan: input.slogan || null,
       office_info: input.office_info || null,
+      profile_json,
+      stories_json,
     })
     .eq("id", candidate.id);
   if (error) return { error: error.message };
   revalidatePath("/admin/candidate");
   revalidatePath("/we");
+  revalidatePath("/we/intro");
   return { ok: true };
 }
 
@@ -62,5 +101,6 @@ export async function saveSns(links: SnsLinks) {
   if (error) return { error: error.message };
   revalidatePath("/admin/candidate/sns");
   revalidatePath("/we");
+  revalidatePath("/we/intro");
   return { ok: true };
 }
