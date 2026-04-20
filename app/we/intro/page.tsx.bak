@@ -28,9 +28,7 @@ export default async function IntroPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("candidates")
-    .select(
-      "name, photo_url, profile_json, stories_json, sns_links, slogan, vision, bio, declaration, office_info"
-    )
+    .select("name, photo_url, profile_json, stories_json, sns_links")
     .order("display_order", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -42,11 +40,6 @@ export default async function IntroPage() {
     ? (data!.stories_json as Story[])
     : [];
   const sns = (data?.sns_links ?? {}) as SnsLinks;
-  const slogan = (data?.slogan ?? "").trim();
-  const vision = (data?.vision ?? "").trim();
-  const bio = (data?.bio ?? "").trim();
-  const declaration = (data?.declaration ?? "").trim();
-  const officeInfo = (data?.office_info ?? "").trim();
 
   return (
     <div className="min-h-screen bg-[#f8f8f8]">
@@ -155,80 +148,6 @@ export default async function IntroPage() {
                   </p>
                 </article>
               ))}
-            </div>
-          </section>
-        )}
-
-        {/* 슬로건 배너 */}
-        {slogan && (
-          <section className="mt-16">
-            <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#FF6B00] via-[#ff7e1f] to-[#ff8a3d] px-6 py-12 text-center text-white shadow-lg md:px-10 md:py-16">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] opacity-90">
-                SLOGAN
-              </p>
-              <p className="mt-4 whitespace-pre-wrap text-2xl font-black leading-relaxed sm:text-3xl md:text-5xl md:leading-tight">
-                {slogan}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* 비전 (좌우 2단) */}
-        {vision && (
-          <section className="mt-16">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[180px_1fr] md:gap-10">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6B00]">
-                  VISION
-                </p>
-                <div className="mt-2 hidden h-0.5 w-10 bg-[#FF6B00] md:block" />
-              </div>
-              <p className="whitespace-pre-wrap text-base leading-loose text-gray-800 md:text-lg">
-                {vision}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* 소개 bio */}
-        {bio && (
-          <section className="mt-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6B00]">
-              ABOUT
-            </p>
-            <div className="mt-2 h-0.5 w-10 bg-[#FF6B00]" />
-            <p className="mt-6 whitespace-pre-wrap text-base leading-loose text-gray-800 md:text-lg">
-              {bio}
-            </p>
-          </section>
-        )}
-
-        {/* 출마선언문 (검정 박스) */}
-        {declaration && (
-          <section className="mt-16">
-            <div className="overflow-hidden rounded-2xl bg-[#0a0a0a] px-6 py-10 text-gray-100 shadow-xl md:px-10 md:py-14">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6B00]">
-                DECLARATION
-              </p>
-              <div className="mt-2 h-0.5 w-10 bg-[#FF6B00]" />
-              <p className="mt-6 whitespace-pre-wrap text-base leading-loose md:text-lg">
-                {declaration}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* 선거사무소 (보더 박스) */}
-        {officeInfo && (
-          <section className="mt-16">
-            <div className="rounded-2xl border-2 border-[#FF6B00] bg-white px-6 py-8 md:px-10 md:py-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6B00]">
-                OFFICE
-              </p>
-              <div className="mt-2 h-0.5 w-10 bg-[#FF6B00]" />
-              <p className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-gray-800 md:text-base">
-                {officeInfo}
-              </p>
             </div>
           </section>
         )}
