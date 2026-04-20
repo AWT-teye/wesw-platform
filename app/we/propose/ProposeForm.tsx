@@ -1,16 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createPropose, type District } from "./actions";
+import { createPropose } from "./actions";
 
-const DISTRICTS: District[] = ["장안구", "권선구", "팔달구", "영통구", "기타"];
 const MAX_LEN = 100;
 
-export default function ProposeForm() {
+export default function ProposeForm({
+  districts,
+}: {
+  districts: string[];
+}) {
   const [content, setContent] = useState("");
-  const [district, setDistrict] = useState<District | "">("");
+  const [district, setDistrict] = useState<string>("");
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(
+    null
+  );
 
   const len = content.length;
   const over = len > MAX_LEN;
@@ -60,7 +65,7 @@ export default function ProposeForm() {
         거주지역
       </label>
       <div id="propose-district" className="mt-2 flex flex-wrap gap-2">
-        {DISTRICTS.map((d) => (
+        {districts.map((d) => (
           <button
             key={d}
             type="button"
@@ -96,9 +101,7 @@ export default function ProposeForm() {
         }`}
       />
       <div className="mt-1 flex items-center justify-between text-xs">
-        <span className="text-gray-500">
-          등록 후에는 삭제할 수 없습니다.
-        </span>
+        <span className="text-gray-500">등록 후에는 삭제할 수 없습니다.</span>
         <span className={over ? "font-bold text-red-600" : "text-gray-500"}>
           {len} / {MAX_LEN}
         </span>

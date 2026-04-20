@@ -3,19 +3,32 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-const DISTRICTS = ["장안구", "권선구", "팔달구", "영통구", "기타"] as const;
-export type District = (typeof DISTRICTS)[number];
-
 export type ProposeInput = {
   content: string;
-  district: District;
+  district: string;
 };
+
+async function fetchAllowedDistricts(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("content_blocks")
+    .select("body_json")
+    .eq("slug", "we_propose_districts")
+    .maybeSingle();
+  const raw = data?.body_json;
+  if (Array.isArray(raw)) {
+    return raw.filter((v): v is string => typeof v === "string" && v.length > 0);
+  }
+  return ["장안구", "권선구", "팔달구", "영통구", "기타"];
+}
 
 export async function createPropose(input: ProposeInput) {
   const content = input.content.trim();
   if (!content) return { error: "내용을 입력해 주세요." };
   if (content.length > 100) return { error: "100자 이내로 작성해 주세요." };
-  if (!DISTRICTS.includes(input.district)) {
+
+  const allowed = await fetchAllowedDistricts();
+  if (!allowed.includes(input.district)) {
     return { error: "거주지역을 선택해 주세요." };
   }
 

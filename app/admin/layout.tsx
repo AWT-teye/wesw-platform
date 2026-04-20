@@ -19,6 +19,8 @@ const NAV = [
   { href: "/admin/candidate/sns", label: "SNS링크" },
   { href: "/admin/org", label: "조직도" },
   { href: "/admin/propose", label: "공약제안" },
+  { href: "/admin/blocks/we_propose_intro", label: "공약제안 상단" },
+  { href: "/admin/blocks/we_propose_districts", label: "거주지역" },
   { href: "/admin/blocks/we_footer_legal", label: "푸터" },
 ];
 
