@@ -16,6 +16,7 @@ const ITEMS = [
   { href: "/admin/candidate", title: "후보 소개 편집", desc: "정희윤 프로필" },
   { href: "/admin/candidate/sns", title: "SNS 링크 관리", desc: "후보 SNS 채널" },
   { href: "/admin/org", title: "조직도/연락처 관리", desc: "캠프 조직도 멤버" },
+  { href: "/admin/observers", title: "참관인신청 관리", desc: "투표소별 참관인 신청 확인·확정/취소" },
   { href: "/admin/propose", title: "공약제안 관리", desc: "시민 제안 확인/부적절 게시물 삭제" },
   { href: "/admin/blocks/we_propose_intro", title: "공약제안 — 상단 설정", desc: "제목/부제/선거법 경고문 편집" },
   { href: "/admin/blocks/we_propose_districts", title: "공약제안 — 거주지역", desc: "거주지역 선택지 추가/삭제/순서" },

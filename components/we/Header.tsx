@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "서포터즈신청",
     external: true,
   },
+  { href: "/we/observers", label: "참관인신청" },
   { href: "/we/propose", label: "공약제안" },
   { href: "/we/organization", label: "조직도 및 연락처" },
 ];
