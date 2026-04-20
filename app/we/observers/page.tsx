@@ -4,18 +4,30 @@ import ObserversClient, { type Station } from "./ObserversClient";
 
 export const revalidate = 30;
 
+type StationRow = Omit<Station, "current_observer_count">;
+type CountRow = { station_id: string; active_count: number };
+
 export default async function ObserversPage() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("polling_stations")
-    .select(
-      "id, district, station_name, address, max_observers, current_observer_count"
-    )
-    .eq("is_active", true)
-    .order("district")
-    .order("station_name");
 
-  const stations = (data ?? []) as Station[];
+  const [stationsRes, countsRes] = await Promise.all([
+    supabase
+      .from("polling_stations")
+      .select("id, district, station_name, address, max_observers")
+      .eq("is_active", true)
+      .order("district")
+      .order("station_name"),
+    supabase.rpc("get_polling_station_counts"),
+  ]);
+
+  const rawStations = (stationsRes.data ?? []) as StationRow[];
+  const counts = (countsRes.data ?? []) as CountRow[];
+  const countsMap = new Map(counts.map((c) => [c.station_id, c.active_count]));
+
+  const stations: Station[] = rawStations.map((s) => ({
+    ...s,
+    current_observer_count: countsMap.get(s.id) ?? 0,
+  }));
 
   return (
     <div className="min-h-screen bg-[#f8f8f8]">

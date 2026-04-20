@@ -6,15 +6,16 @@ import AdminObserversClient, {
 
 export const dynamic = "force-dynamic";
 
+type StationRow = Omit<Station, "current_observer_count">;
+type CountRow = { station_id: string; active_count: number };
+
 export default async function AdminObserversPage() {
   const supabase = await createClient();
 
-  const [stationsRes, appsRes] = await Promise.all([
+  const [stationsRes, appsRes, countsRes] = await Promise.all([
     supabase
       .from("polling_stations")
-      .select(
-        "id, district, station_name, address, max_observers, current_observer_count"
-      )
+      .select("id, district, station_name, address, max_observers")
       .eq("is_active", true)
       .order("district")
       .order("station_name"),
@@ -24,9 +25,17 @@ export default async function AdminObserversPage() {
         "id, station_id, name, phone, district, residence, is_party_member, status, created_at"
       )
       .order("created_at", { ascending: false }),
+    supabase.rpc("get_polling_station_counts"),
   ]);
 
-  const stations = (stationsRes.data ?? []) as Station[];
+  const rawStations = (stationsRes.data ?? []) as StationRow[];
+  const counts = (countsRes.data ?? []) as CountRow[];
+  const countsMap = new Map(counts.map((c) => [c.station_id, c.active_count]));
+
+  const stations: Station[] = rawStations.map((s) => ({
+    ...s,
+    current_observer_count: countsMap.get(s.id) ?? 0,
+  }));
   const applications = (appsRes.data ?? []) as Application[];
 
   return (
