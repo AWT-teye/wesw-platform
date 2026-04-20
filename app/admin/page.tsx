@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const ITEMS = [
+  { href: "/admin/blocks/we_popup", title: "메인 팝업 관리", desc: "팝업 제목/본문/버튼/공개여부" },
   { href: "/admin/carousel", title: "캐러셀 관리", desc: "메인 히어로 슬라이드 5장" },
   { href: "/admin/blocks/we_camp_intro", title: "위기 대시보드 — 인트로", desc: "제목 + 소개 텍스트" },
   { href: "/admin/blocks/we_crisis_stats", title: "위기 대시보드 — 데이터 카드", desc: "6개 위기 지표 JSON" },

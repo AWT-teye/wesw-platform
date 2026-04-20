@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import CrisisSection from "@/components/we/CrisisSection";
 import FactCheckSection from "@/components/we/FactCheckSection";
+import PopupModal from "@/components/we/PopupModal";
 
 /**
  * we.wesw.kr 메인페이지
@@ -30,6 +31,7 @@ async function fetchAll() {
     detailPledges,
     footer,
     factChecks,
+    popup,
   ] = await Promise.all([
     supabase
       .from("hero_slides")
@@ -102,6 +104,11 @@ async function fetchAll() {
       .order("order_num", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(3),
+    supabase
+      .from("content_blocks")
+      .select("title, body_html, body_json")
+      .eq("slug", "we_popup")
+      .maybeSingle(),
   ]);
 
   return {
@@ -117,6 +124,7 @@ async function fetchAll() {
     detailPledges: detailPledges.data ?? [],
     footer: footer.data,
     factChecks: factChecks.data ?? [],
+    popup: popup.data,
   };
 }
 
@@ -126,8 +134,20 @@ async function fetchAll() {
 export default async function WeMainPage() {
   const data = await fetchAll();
 
+  const popupJson = data.popup?.body_json as
+    | { button_text?: string; button_link?: string }
+    | null;
+
   return (
     <>
+      {data.popup?.title && data.popup?.body_html && (
+        <PopupModal
+          title={data.popup.title}
+          bodyHtml={data.popup.body_html}
+          buttonText={popupJson?.button_text ?? null}
+          buttonLink={popupJson?.button_link ?? null}
+        />
+      )}
       <HeroSection />
       <StatsSection />
       <CarouselSection slides={data.slides} />
