@@ -3,11 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export const RESIDENCE_OPTIONS = [
+  "수원시권선구",
+  "수원시영통구",
+  "수원시장안구",
+  "수원시팔달구",
+  "수원외",
+] as const;
+export type Residence = (typeof RESIDENCE_OPTIONS)[number];
+
 export type ObserverApplyInput = {
   station_id: string;
   name: string;
   phone: string;
   district: string;
+  residence: string;
+  is_party_member: boolean;
   agree: boolean;
 };
 
@@ -15,6 +26,9 @@ export async function applyObserver(input: ObserverApplyInput) {
   const name = input.name.trim();
   const phone = input.phone.trim();
 
+  if (!input.is_party_member) {
+    return { error: "참관인은 개혁신당 당원만 신청 가능합니다." };
+  }
   if (!input.agree) return { error: "개인정보 수집에 동의해 주세요." };
   if (!name) return { error: "성명을 입력해 주세요." };
   if (name.length > 50) return { error: "성명은 50자 이내로 입력해 주세요." };
@@ -22,10 +36,12 @@ export async function applyObserver(input: ObserverApplyInput) {
     return { error: "연락처를 정확히 입력해 주세요." };
   if (!input.station_id) return { error: "투표소가 선택되지 않았습니다." };
   if (!input.district) return { error: "구를 선택해 주세요." };
+  if (!RESIDENCE_OPTIONS.includes(input.residence as Residence)) {
+    return { error: "거주지를 선택해 주세요." };
+  }
 
   const supabase = await createClient();
 
-  // 정원 사전 확인 (트리거가 최종 보장)
   const { data: station } = await supabase
     .from("polling_stations")
     .select("max_observers, current_observer_count, is_active")
@@ -44,11 +60,12 @@ export async function applyObserver(input: ObserverApplyInput) {
     name,
     phone,
     district: input.district,
+    residence: input.residence,
+    is_party_member: true,
     status: "pending",
   });
 
   if (error) {
-    // 트리거에서 '정원 마감' 발생 시 에러 메시지에 포함됨
     if (error.message.includes("정원")) {
       return { error: "해당 투표소는 정원이 마감되었습니다." };
     }

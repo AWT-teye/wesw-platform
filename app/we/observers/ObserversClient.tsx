@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { applyObserver } from "./actions";
+import { applyObserver, RESIDENCE_OPTIONS, type Residence } from "./actions";
 
 export type Station = {
   id: string;
@@ -12,7 +12,7 @@ export type Station = {
   current_observer_count: number;
 };
 
-const DISTRICTS = ["장안구", "권선구", "팔달구", "영통구"] as const;
+const DISTRICTS = ["권선구", "영통구", "장안구", "팔달구"] as const;
 
 export default function ObserversClient({
   stations,
@@ -20,7 +20,7 @@ export default function ObserversClient({
   stations: Station[];
 }) {
   const [activeDistrict, setActiveDistrict] =
-    useState<(typeof DISTRICTS)[number]>("장안구");
+    useState<(typeof DISTRICTS)[number]>("권선구");
   const [modalStation, setModalStation] = useState<Station | null>(null);
 
   const filtered = useMemo(
@@ -78,13 +78,10 @@ export default function ObserversClient({
               </tr>
             )}
             {filtered.map((s) => {
-              const full =
-                s.current_observer_count >= s.max_observers;
+              const full = s.current_observer_count >= s.max_observers;
               return (
                 <tr key={s.id} className="border-t border-gray-100 align-top">
-                  <td className="px-4 py-3 font-semibold">
-                    {s.station_name}
-                  </td>
+                  <td className="px-4 py-3 font-semibold">{s.station_name}</td>
                   <td className="px-4 py-3 text-gray-600">{s.address}</td>
                   <td className="px-4 py-3 text-center">
                     <span
@@ -137,12 +134,22 @@ function ApplyModal({
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [residence, setResidence] = useState<Residence | "">("");
+  const [isParty, setIsParty] = useState(false);
   const [agree, setAgree] = useState(false);
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(
     null
   );
   const [done, setDone] = useState(false);
+
+  const canSubmit =
+    !!name.trim() &&
+    !!phone.trim() &&
+    !!residence &&
+    isParty &&
+    agree &&
+    !pending;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,6 +160,17 @@ function ApplyModal({
     }
     if (!phone.trim()) {
       setMsg({ type: "error", text: "연락처를 입력해 주세요." });
+      return;
+    }
+    if (!residence) {
+      setMsg({ type: "error", text: "거주지를 선택해 주세요." });
+      return;
+    }
+    if (!isParty) {
+      setMsg({
+        type: "error",
+        text: "참관인은 개혁신당 당원만 신청 가능합니다.",
+      });
       return;
     }
     if (!agree) {
@@ -166,6 +184,8 @@ function ApplyModal({
         name: name.trim(),
         phone: phone.trim(),
         district: station.district,
+        residence,
+        is_party_member: true,
         agree,
       });
       if ("error" in r && r.error) {
@@ -190,7 +210,7 @@ function ApplyModal({
         className="absolute inset-0 bg-black/60"
       />
 
-      <div className="relative w-full max-w-md rounded-xl bg-white p-5 shadow-2xl md:p-6">
+      <div className="relative max-h-[92vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-2xl md:p-6">
         {done ? (
           <div className="text-center">
             <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-600">
@@ -233,7 +253,7 @@ function ApplyModal({
             </div>
 
             <label className="block text-sm font-semibold" htmlFor="obs-name">
-              성명
+              성명 <span className="text-red-500">*</span>
             </label>
             <input
               id="obs-name"
@@ -249,7 +269,7 @@ function ApplyModal({
               className="mt-4 block text-sm font-semibold"
               htmlFor="obs-phone"
             >
-              연락처
+              연락처 <span className="text-red-500">*</span>
             </label>
             <input
               id="obs-phone"
@@ -262,7 +282,49 @@ function ApplyModal({
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/30"
             />
 
+            <label
+              className="mt-4 block text-sm font-semibold"
+              htmlFor="obs-residence"
+            >
+              거주지 <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="obs-residence"
+              value={residence}
+              onChange={(e) => setResidence(e.target.value as Residence | "")}
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/30"
+            >
+              <option value="">거주지 선택</option>
+              {RESIDENCE_OPTIONS.map((r) => (
+                <option key={r} value={r}>
+                  {formatResidenceLabel(r)}
+                </option>
+              ))}
+            </select>
+
             <label className="mt-4 flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                checked={isParty}
+                onChange={(e) => setIsParty(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#FF6B00]"
+              />
+              <span>
+                <strong className="font-bold">
+                  개혁신당 당원입니다 (필수)
+                </strong>
+                <br />
+                참관인은 개혁신당 소속 당원만 신청할 수 있습니다.
+              </span>
+            </label>
+            {!isParty && (
+              <p className="mt-1 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700">
+                ⚠️ 당원이 아니신 경우 신청이 불가합니다. 먼저 당원가입 후
+                신청해 주세요.
+              </p>
+            )}
+
+            <label className="mt-3 flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
               <input
                 type="checkbox"
                 checked={agree}
@@ -270,10 +332,12 @@ function ApplyModal({
                 className="mt-0.5 h-4 w-4 accent-[#FF6B00]"
               />
               <span>
-                <strong className="font-bold">개인정보 수집 동의 (필수)</strong>
+                <strong className="font-bold">
+                  개인정보 수집 동의 (필수)
+                </strong>
                 <br />
-                수집항목: 성명, 연락처, 참관 희망 투표소 / 이용목적: 참관인
-                배정 및 연락 / 보유기간: 선거 종료 후 3개월
+                수집항목: 성명, 연락처, 거주지, 참관 희망 투표소 / 이용목적:
+                참관인 배정 및 연락 / 보유기간: 선거 종료 후 3개월
               </span>
             </label>
 
@@ -299,7 +363,7 @@ function ApplyModal({
               </button>
               <button
                 type="submit"
-                disabled={pending || !agree || !name.trim() || !phone.trim()}
+                disabled={!canSubmit}
                 className="flex-1 rounded-md bg-[#FF6B00] px-5 py-3 text-sm font-bold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {pending ? "제출 중..." : "제출"}
@@ -310,4 +374,19 @@ function ApplyModal({
       </div>
     </div>
   );
+}
+
+function formatResidenceLabel(r: Residence): string {
+  switch (r) {
+    case "수원시권선구":
+      return "수원시 권선구";
+    case "수원시영통구":
+      return "수원시 영통구";
+    case "수원시장안구":
+      return "수원시 장안구";
+    case "수원시팔달구":
+      return "수원시 팔달구";
+    case "수원외":
+      return "수원 외";
+  }
 }

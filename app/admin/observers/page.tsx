@@ -20,7 +20,9 @@ export default async function AdminObserversPage() {
       .order("station_name"),
     supabase
       .from("observer_applications")
-      .select("id, station_id, name, phone, district, status, created_at")
+      .select(
+        "id, station_id, name, phone, district, residence, is_party_member, status, created_at"
+      )
       .order("created_at", { ascending: false }),
   ]);
 
