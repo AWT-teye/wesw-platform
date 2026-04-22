@@ -44,14 +44,33 @@ export default function CandidateForm({ initial }: { initial: CandidateInput }) 
           <img src={form.photo_url} alt="미리보기" className="mt-2 h-32 w-auto rounded border border-gray-200 object-cover" />
         )}
       </Field>
+
+      {/* 슬로건 */}
+      <Section title="슬로건" right={<Toggle checked={form.show_slogan} onChange={(v) => up("show_slogan", v)} />} />
       <Field label="슬로건 (한 줄)"><input value={form.slogan} onChange={(e) => up("slogan", e.target.value)} className={input} /></Field>
+
+      {/* 비전 */}
+      <Section title="비전" right={<Toggle checked={form.show_vision} onChange={(v) => up("show_vision", v)} />} />
       <Field label="비전"><textarea rows={3} value={form.vision} onChange={(e) => up("vision", e.target.value)} className={input} /></Field>
-      <Field label="소개 (bio)"><textarea rows={5} value={form.bio} onChange={(e) => up("bio", e.target.value)} className={input} /></Field>
+
+      {/* 소개 (bio) */}
+      <Section title="소개 (bio)" right={<Toggle checked={form.show_bio} onChange={(v) => up("show_bio", v)} />} />
+      <Field label="소개"><textarea rows={5} value={form.bio} onChange={(e) => up("bio", e.target.value)} className={input} /></Field>
+
+      {/* 출마선언문 */}
+      <Section title="출마선언문" right={<Toggle checked={form.show_declaration} onChange={(v) => up("show_declaration", v)} />} />
       <Field label="출마선언문"><textarea rows={5} value={form.declaration} onChange={(e) => up("declaration", e.target.value)} className={input} /></Field>
+
+      {/* 선거사무소 정보 */}
+      <Section title="선거사무소 정보" right={<Toggle checked={form.show_office} onChange={(v) => up("show_office", v)} />} />
       <Field label="선거사무소 정보"><textarea rows={3} value={form.office_info} onChange={(e) => up("office_info", e.target.value)} className={input} /></Field>
 
       {/* ─── 후보소개 — 인적사항 ─── */}
-      <Section title="후보소개 / 인적사항" subtitle="/we/intro 프로필 카드에 표시됩니다." />
+      <Section
+        title="인적사항"
+        subtitle="/we/intro 프로필 카드에 표시됩니다."
+        right={<Toggle checked={form.show_profile_info} onChange={(v) => up("show_profile_info", v)} />}
+      />
       <Field label="직함 (예: 수원특례시장 예비후보 / 개혁신당)">
         <input value={form.profile_title} onChange={(e) => up("profile_title", e.target.value)} className={input} />
       </Field>
@@ -71,27 +90,37 @@ export default function CandidateForm({ initial }: { initial: CandidateInput }) 
       </Field>
 
       {/* ─── 스토리 섹션 ─── */}
-      <Section title="후보소개 / 스토리 섹션" subtitle="프로필 하단에 카드 형태로 표시됩니다. 비워두면 해당 카드는 노출되지 않습니다." />
+      <Section
+        title="스토리 섹션"
+        subtitle="프로필 하단에 카드 형태로 표시됩니다. 비워두면 해당 카드는 노출되지 않습니다."
+        right={<Toggle checked={form.show_stories} onChange={(v) => up("show_stories", v)} />}
+      />
       <StoryBlock
         index={1}
         title={form.story1_title}
         body={form.story1_body}
+        show={form.show_story1}
         onTitle={(v) => up("story1_title", v)}
         onBody={(v) => up("story1_body", v)}
+        onShow={(v) => up("show_story1", v)}
       />
       <StoryBlock
         index={2}
         title={form.story2_title}
         body={form.story2_body}
+        show={form.show_story2}
         onTitle={(v) => up("story2_title", v)}
         onBody={(v) => up("story2_body", v)}
+        onShow={(v) => up("show_story2", v)}
       />
       <StoryBlock
         index={3}
         title={form.story3_title}
         body={form.story3_body}
+        show={form.show_story3}
         onTitle={(v) => up("story3_title", v)}
         onBody={(v) => up("story3_body", v)}
+        onShow={(v) => up("show_story3", v)}
       />
 
       {msg && <p className="mt-4 rounded border border-gray-200 bg-gray-50 p-2 text-xs">{msg}</p>}
@@ -111,11 +140,22 @@ export default function CandidateForm({ initial }: { initial: CandidateInput }) 
   );
 }
 
-function Section({ title, subtitle }: { title: string; subtitle?: string }) {
+function Section({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+}) {
   return (
-    <div className="mt-8 mb-3 border-b border-gray-200 pb-2 first:mt-0">
-      <h2 className="text-base font-extrabold text-[#FF6B00]">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+    <div className="mt-8 mb-3 flex items-start justify-between gap-3 border-b border-gray-200 pb-2 first:mt-0">
+      <div>
+        <h2 className="text-base font-extrabold text-[#FF6B00]">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
+      </div>
+      {right && <div className="shrink-0 pt-0.5">{right}</div>}
     </div>
   );
 }
@@ -124,23 +164,63 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="mt-4 block text-sm font-semibold first:mt-0">{label}{children}</label>;
 }
 
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="inline-flex items-center gap-2 text-xs font-semibold"
+    >
+      <span
+        className={`relative inline-block h-5 w-9 rounded-full transition-colors ${
+          checked ? "bg-[#FF6B00]" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+            checked ? "left-[18px]" : "left-0.5"
+          }`}
+        />
+      </span>
+      <span className={checked ? "text-[#FF6B00]" : "text-gray-500"}>
+        {checked ? "노출 중" : "숨김"}
+      </span>
+    </button>
+  );
+}
+
 function StoryBlock({
   index,
   title,
   body,
+  show,
   onTitle,
   onBody,
+  onShow,
 }: {
   index: number;
   title: string;
   body: string;
+  show: boolean;
   onTitle: (v: string) => void;
   onBody: (v: string) => void;
+  onShow: (v: boolean) => void;
 }) {
   const input = "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm";
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <p className="mb-2 text-xs font-bold text-gray-600">스토리 {index}</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-bold text-gray-600">스토리 {index}</p>
+        <Toggle checked={show} onChange={onShow} />
+      </div>
       <label className="block text-sm font-semibold">
         제목
         <input value={title} onChange={(e) => onTitle(e.target.value)} className={input} />

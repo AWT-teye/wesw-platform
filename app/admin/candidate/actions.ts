@@ -31,6 +31,18 @@ export type CandidateInput = {
   story2_body: string;
   story3_title: string;
   story3_body: string;
+  // 섹션 노출 여부 토글
+  show_slogan: boolean;
+  show_vision: boolean;
+  show_bio: boolean;
+  show_declaration: boolean;
+  show_office: boolean;
+  show_profile_info: boolean;
+  show_stories: boolean;
+  // 개별 스토리 노출 여부 (stories_json.show 로 저장)
+  show_story1: boolean;
+  show_story2: boolean;
+  show_story3: boolean;
 };
 
 export async function saveCandidate(input: CandidateInput) {
@@ -50,9 +62,9 @@ export async function saveCandidate(input: CandidateInput) {
   };
 
   const stories_json = [
-    { title: input.story1_title || "", body: input.story1_body || "" },
-    { title: input.story2_title || "", body: input.story2_body || "" },
-    { title: input.story3_title || "", body: input.story3_body || "" },
+    { title: input.story1_title || "", body: input.story1_body || "", show: input.show_story1 },
+    { title: input.story2_title || "", body: input.story2_body || "", show: input.show_story2 },
+    { title: input.story3_title || "", body: input.story3_body || "", show: input.show_story3 },
   ].filter((s) => s.title || s.body);
 
   const { error } = await supabase
@@ -69,6 +81,13 @@ export async function saveCandidate(input: CandidateInput) {
       office_info: input.office_info || null,
       profile_json,
       stories_json,
+      show_slogan: input.show_slogan,
+      show_vision: input.show_vision,
+      show_bio: input.show_bio,
+      show_declaration: input.show_declaration,
+      show_office: input.show_office,
+      show_profile_info: input.show_profile_info,
+      show_stories: input.show_stories,
     })
     .eq("id", candidate.id);
   if (error) return { error: error.message };

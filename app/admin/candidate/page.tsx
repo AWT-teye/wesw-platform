@@ -14,7 +14,7 @@ type ProfileJson = {
   awards?: string;
   career?: string;
 };
-type Story = { title?: string; body?: string };
+type Story = { title?: string; body?: string; show?: boolean };
 
 export default async function CandidateEditPage() {
   const c = await getOrCreatePrimaryCandidate();
@@ -22,6 +22,11 @@ export default async function CandidateEditPage() {
   const stories = Array.isArray(c.stories_json)
     ? (c.stories_json as Story[])
     : [];
+
+  // 누락된 show_* 컬럼은 아직 마이그레이션 전일 수 있으므로 안전 기본값 true.
+  const showFlag = (v: unknown) => (v === false ? false : true);
+  const showStory = (s: Story | undefined) =>
+    s && typeof s.show === "boolean" ? s.show : true;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -52,6 +57,16 @@ export default async function CandidateEditPage() {
           story2_body: stories[1]?.body ?? "",
           story3_title: stories[2]?.title ?? "",
           story3_body: stories[2]?.body ?? "",
+          show_slogan: showFlag(c.show_slogan),
+          show_vision: showFlag(c.show_vision),
+          show_bio: showFlag(c.show_bio),
+          show_declaration: showFlag(c.show_declaration),
+          show_office: showFlag(c.show_office),
+          show_profile_info: showFlag(c.show_profile_info),
+          show_stories: showFlag(c.show_stories),
+          show_story1: showStory(stories[0]),
+          show_story2: showStory(stories[1]),
+          show_story3: showStory(stories[2]),
         }}
       />
     </div>
