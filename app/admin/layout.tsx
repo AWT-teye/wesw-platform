@@ -15,6 +15,8 @@ const NAV = [
   { href: "/admin/policies?level=1", label: "대공약" },
   { href: "/admin/policies?level=2", label: "중공약" },
   { href: "/admin/policies?level=3", label: "세부공약" },
+  { href: "/admin/pledges/overview", label: "공약소개관리" },
+  { href: "/admin/pledges/region", label: "지역별공약관리" },
   { href: "/admin/candidate", label: "후보소개" },
   { href: "/admin/candidate/sns", label: "SNS링크" },
   { href: "/admin/sns", label: "SNS관리" },

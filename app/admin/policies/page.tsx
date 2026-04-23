@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { togglePolicyActive, deletePolicy } from "./actions";
+import { togglePolicyTop10 } from "../pledges/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,13 @@ export default async function PoliciesListPage({
   const supabase = await createClient();
   const { data } = await supabase
     .from("policies")
-    .select("id, title, content, level, parent_id, display_order, is_active, like_count, dislike_count")
+    .select("id, title, content, level, parent_id, display_order, is_active, like_count, dislike_count, is_top10")
     .eq("level", level)
     .eq("is_archived", false)
     .order("display_order", { ascending: true });
 
   const items = data ?? [];
+  const showTop10Col = level === 2;
 
   return (
     <div>
@@ -55,12 +57,13 @@ export default async function PoliciesListPage({
               <th className="px-4 py-3">제목</th>
               <th className="px-4 py-3">호불호</th>
               <th className="px-4 py-3">노출</th>
+              {showTop10Col && <th className="px-4 py-3">10대공약</th>}
               <th className="px-4 py-3">관리</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">등록된 {label}이 없습니다.</td></tr>
+              <tr><td colSpan={showTop10Col ? 6 : 5} className="px-4 py-8 text-center text-gray-500">등록된 {label}이 없습니다.</td></tr>
             )}
             {items.map((p) => (
               <tr key={p.id} className="border-t border-gray-100">
@@ -77,6 +80,15 @@ export default async function PoliciesListPage({
                     </button>
                   </form>
                 </td>
+                {showTop10Col && (
+                  <td className="px-4 py-3">
+                    <form action={async () => { "use server"; await togglePolicyTop10(p.id, !p.is_top10); }}>
+                      <button className={`rounded-full px-2 py-1 text-xs font-bold ${p.is_top10 ? "bg-[#FF6B00] text-white" : "bg-gray-200 text-gray-600"}`}>
+                        {p.is_top10 ? "포함" : "제외"}
+                      </button>
+                    </form>
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <Link href={`/admin/policies/${p.id}?level=${level}`} className="rounded border border-gray-300 px-2 py-1 text-xs hover:border-[#FF6B00] hover:text-[#FF6B00]">편집</Link>

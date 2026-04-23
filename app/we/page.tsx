@@ -191,7 +191,7 @@ function HeroSection() {
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Link
-            href="/we/pledge"
+            href="/we/pledges"
             className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
           >
             공약 보기

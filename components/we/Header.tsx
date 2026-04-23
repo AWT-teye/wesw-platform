@@ -12,7 +12,7 @@ import MobileNav, { type NavItem } from "./MobileNav";
  */
 const NAV_ITEMS: NavItem[] = [
   { href: "/we/intro", label: "후보소개" },
-  { href: "/we/pledge", label: "후보공약" },
+  { href: "/we/pledges", label: "후보공약" },
   { href: "/we/sns", label: "후보SNS" },
   {
     href: "https://forms.gle/E6upekzVEfzZHwP76",

@@ -2,6 +2,8 @@
 ## 개혁신당 수원시당 홈페이지 & 2026 제9회 지방선거 수원9.0캠프
 > 최종 업데이트: 2026-04-02 | 기획: WHITE JO (수원 호매실동 당원)
 
+> ⚠️ **운영자 준비 필요 — Supabase Storage 버킷**: `/admin/pledges/overview` 와 `/admin/pledges/region` 의 이미지 업로드 기능은 Supabase Storage 의 **`pledges`** 라는 이름의 **public 버킷**을 사용합니다. Supabase Dashboard → Storage 에서 `pledges` 버킷을 생성하고 public 으로 설정해야 업로드가 동작합니다. (버킷이 없으면 URL 직접 입력 필드는 계속 사용 가능합니다.)
+
 ---
 
 ## 1. 프로젝트 개요
