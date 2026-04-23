@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import type { Geometry } from "geojson";
+import SuwonMap, { type SuwonRegion } from "@/components/we/SuwonMap";
 
 // ───── 타입 ─────
 
@@ -40,6 +42,7 @@ export type PledgesData = {
     display_order: number;
   }>;
   regions: Array<{
+    id: string;
     region_type: string;
     region_code: string;
     region_name: string;
@@ -47,6 +50,14 @@ export type PledgesData = {
     popup_image_url: string | null;
     display_order: number;
     is_visible: boolean;
+  }>;
+  suwonMap: Array<{
+    gu_code: "jangan" | "gwonseon" | "paldal" | "yeongtong";
+    gu_name: string;
+    dong_name: string;
+    adm_cd2: string;
+    geojson: Geometry;
+    region_pledge_id: string | null;
   }>;
 };
 
@@ -482,29 +493,80 @@ function Top10Accordion({
 // ───── 탭4 지역별 맞춤공약 ─────
 
 function RegionTab({ data }: { data: PledgesData }) {
-  const gus = data.regions.filter((r) => r.region_type === "gu");
+  const gus = useMemo(
+    () => data.regions.filter((r) => r.region_type === "gu"),
+    [data.regions]
+  );
   const specials = data.regions.filter((r) => r.region_type === "special");
 
+  // gu 공약이 "보일 만한" 컨텐츠를 가졌는가 (has_pledge 판단용)
+  const pledgeByCode = useMemo(() => {
+    const m = new Map<string, PledgesData["regions"][number]>();
+    for (const r of data.regions) m.set(r.region_code, r);
+    return m;
+  }, [data.regions]);
+
+  // suwon_map_regions → SuwonRegion[] 변환 (has_pledge 계산)
+  const suwonRegions = useMemo<SuwonRegion[]>(() => {
+    return data.suwonMap.map((m) => {
+      const gu = pledgeByCode.get(m.gu_code);
+      const hasPledge =
+        !!m.region_pledge_id ||
+        !!(gu && gu.is_visible && (gu.content || gu.popup_image_url));
+      return {
+        gu_code: m.gu_code,
+        gu_name: m.gu_name,
+        dong_name: m.dong_name,
+        adm_cd2: m.adm_cd2,
+        geojson: m.geojson,
+        has_pledge: hasPledge,
+      };
+    });
+  }, [data.suwonMap, pledgeByCode]);
+
+  // 활성화된 모달 상태
+  // - gu 단위 모달 (동 클릭 시 해당 gu_code의 region_pledges 렌더)
+  // - special 카드 모달은 region_code 그대로
   const [activeCode, setActiveCode] = useState<string | null>(null);
+  const [activeDong, setActiveDong] = useState<{
+    gu_name: string;
+    dong_name: string;
+  } | null>(null);
+
   const byCode = useCallback(
     (code: string) => data.regions.find((r) => r.region_code === code) ?? null,
     [data.regions]
   );
 
-  // URL 해시 동기화
+  // URL 해시 동기화 (#jangan-파장동, #talent-edu 등)
   useEffect(() => {
     const applyHash = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (hash && byCode(hash)) {
-        setActiveCode(hash);
+      const hash = decodeURIComponent(
+        window.location.hash.replace("#", "") || ""
+      );
+      if (!hash) {
+        setActiveCode(null);
+        setActiveDong(null);
+        return;
+      }
+      const [guCode, dongName] = hash.split("-");
+      const r = byCode(guCode);
+      if (r) {
+        setActiveCode(r.region_code);
+        if (dongName) {
+          const gu = gus.find((g) => g.region_code === guCode);
+          if (gu) setActiveDong({ gu_name: gu.region_name, dong_name: dongName });
+        } else {
+          setActiveDong(null);
+        }
       }
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
-  }, [byCode]);
+  }, [byCode, gus]);
 
-  function open(code: string) {
+  function openSpecial(code: string) {
     const r = byCode(code);
     if (!r) return;
     if (!r.is_visible) {
@@ -512,12 +574,34 @@ function RegionTab({ data }: { data: PledgesData }) {
       return;
     }
     setActiveCode(code);
+    setActiveDong(null);
     if (typeof window !== "undefined") {
       history.replaceState(null, "", `#${code}`);
     }
   }
+
+  function openDong(_adm_cd2: string, dong_name: string, gu_name: string) {
+    // gu_name으로 gu_code 역매핑 → region_pledges 조회
+    const gu = gus.find((g) => g.region_name === gu_name);
+    if (!gu) return;
+    if (!gu.is_visible) {
+      alert("해당 구 공약은 준비중입니다.");
+      return;
+    }
+    setActiveCode(gu.region_code);
+    setActiveDong({ gu_name, dong_name });
+    if (typeof window !== "undefined") {
+      history.replaceState(
+        null,
+        "",
+        `#${gu.region_code}-${encodeURIComponent(dong_name)}`
+      );
+    }
+  }
+
   function close() {
     setActiveCode(null);
+    setActiveDong(null);
     if (typeof window !== "undefined") {
       history.replaceState(null, "", window.location.pathname);
     }
@@ -529,11 +613,19 @@ function RegionTab({ data }: { data: PledgesData }) {
     <section>
       <h2 className="text-xl font-extrabold md:text-2xl">지역별 맞춤공약</h2>
       <p className="mt-1 text-xs text-gray-500">
-        수원 4개 구를 클릭하거나 아래 특별 카드를 눌러 상세 공약을 확인하세요.
+        수원 4개 구를 클릭하면 행정동 단위로 확대됩니다. 동을 선택하면 해당 구의
+        맞춤공약이 열립니다.
       </p>
 
       <div className="mt-5">
-        <SuwonMap gus={gus} onClick={open} />
+        {suwonRegions.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+            수원시 행정동 지도 데이터가 없습니다. 관리자가 마이그레이션을
+            적용하면 표시됩니다.
+          </div>
+        ) : (
+          <SuwonMap regions={suwonRegions} onDongClick={openDong} />
+        )}
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3">
@@ -541,7 +633,7 @@ function RegionTab({ data }: { data: PledgesData }) {
           <button
             key={s.region_code}
             type="button"
-            onClick={() => open(s.region_code)}
+            onClick={() => openSpecial(s.region_code)}
             className={`rounded-xl border-2 p-5 text-left transition ${
               s.is_visible
                 ? "border-[#FF6B00] bg-white hover:bg-[#FF6B00] hover:text-white"
@@ -559,141 +651,24 @@ function RegionTab({ data }: { data: PledgesData }) {
         ))}
       </div>
 
-      {active && <RegionModal region={active} onClose={close} />}
+      {active && (
+        <RegionModal
+          region={active}
+          dong={activeDong}
+          onClose={close}
+        />
+      )}
     </section>
-  );
-}
-
-function SuwonMap({
-  gus,
-  onClick,
-}: {
-  gus: PledgesData["regions"];
-  onClick: (code: string) => void;
-}) {
-  const find = (code: string) => gus.find((g) => g.region_code === code);
-
-  function pathCls(code: string) {
-    const r = find(code);
-    const enabled = !!r && r.is_visible;
-    return `cursor-pointer transition-colors outline-none focus:outline-[#FF6B00] ${
-      enabled
-        ? "fill-[#FF6B00]/20 stroke-[#FF6B00] hover:fill-[#FF6B00]/60"
-        : "fill-gray-200 stroke-gray-400"
-    }`;
-  }
-  function labelCls(code: string) {
-    const r = find(code);
-    const enabled = !!r && r.is_visible;
-    return `pointer-events-none select-none text-[12px] font-bold ${
-      enabled ? "fill-[#1a1a1a]" : "fill-gray-400"
-    }`;
-  }
-
-  // 수원 4개 구의 단순 추상화 배치 (정확한 지도가 아닌 개념도)
-  return (
-    <svg
-      viewBox="0 0 400 260"
-      role="img"
-      aria-label="수원시 4개 구 지도"
-      className="h-auto w-full max-w-xl"
-    >
-      <rect
-        x="0"
-        y="0"
-        width="400"
-        height="260"
-        fill="#FF6B00"
-        opacity="0.04"
-        rx="12"
-      />
-      {/* 장안구 (좌상) */}
-      <g onClick={() => onClick("jangan")}>
-        <path
-          d="M40 30 L200 30 L200 130 L40 130 Z"
-          className={pathCls("jangan")}
-          strokeWidth={2}
-          aria-label="장안구"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") onClick("jangan");
-          }}
-        />
-        <text x="120" y="85" textAnchor="middle" className={labelCls("jangan")}>
-          장안구
-        </text>
-      </g>
-      {/* 영통구 (우상) */}
-      <g onClick={() => onClick("yeongtong")}>
-        <path
-          d="M200 30 L360 30 L360 130 L200 130 Z"
-          className={pathCls("yeongtong")}
-          strokeWidth={2}
-          aria-label="영통구"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") onClick("yeongtong");
-          }}
-        />
-        <text
-          x="280"
-          y="85"
-          textAnchor="middle"
-          className={labelCls("yeongtong")}
-        >
-          영통구
-        </text>
-      </g>
-      {/* 권선구 (좌하) */}
-      <g onClick={() => onClick("gwonseon")}>
-        <path
-          d="M40 130 L200 130 L200 230 L40 230 Z"
-          className={pathCls("gwonseon")}
-          strokeWidth={2}
-          aria-label="권선구"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") onClick("gwonseon");
-          }}
-        />
-        <text
-          x="120"
-          y="185"
-          textAnchor="middle"
-          className={labelCls("gwonseon")}
-        >
-          권선구
-        </text>
-      </g>
-      {/* 팔달구 (우하) */}
-      <g onClick={() => onClick("paldal")}>
-        <path
-          d="M200 130 L360 130 L360 230 L200 230 Z"
-          className={pathCls("paldal")}
-          strokeWidth={2}
-          aria-label="팔달구"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") onClick("paldal");
-          }}
-        />
-        <text x="280" y="185" textAnchor="middle" className={labelCls("paldal")}>
-          팔달구
-        </text>
-      </g>
-    </svg>
   );
 }
 
 function RegionModal({
   region,
+  dong,
   onClose,
 }: {
   region: PledgesData["regions"][number];
+  dong: { gu_name: string; dong_name: string } | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -709,11 +684,15 @@ function RegionModal({
     };
   }, [onClose]);
 
+  const title = dong
+    ? `${region.region_name} · ${dong.dong_name}`
+    : region.region_name;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${region.region_name} 공약`}
+      aria-label={`${title} 공약`}
       className="fixed inset-0 z-50 flex items-center justify-center"
     >
       <button
@@ -725,7 +704,7 @@ function RegionModal({
       <div className="relative flex h-full w-full flex-col bg-white md:h-auto md:max-h-[85vh] md:max-w-2xl md:rounded-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <h3 className="text-lg font-extrabold text-[#FF6B00] md:text-xl">
-            {region.region_name}
+            {title}
           </h3>
           <button
             type="button"

@@ -58,6 +58,23 @@ export async function saveRegionPledge(input: RegionPledgeInput) {
     })
     .eq("id", input.id);
   if (error) return { error: error.message };
+
+  // gu 타입이면 해당 gu_code의 모든 suwon_map_regions.region_pledge_id 일괄 업데이트
+  const { data: row } = await supabase
+    .from("region_pledges")
+    .select("region_type, region_code, is_visible")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (row && row.region_type === "gu") {
+    const nextPledgeId = row.is_visible ? input.id : null;
+    const { error: mapErr } = await supabase
+      .from("suwon_map_regions")
+      .update({ region_pledge_id: nextPledgeId })
+      .eq("gu_code", row.region_code);
+    if (mapErr) return { error: mapErr.message };
+  }
+
   revalidatePath("/admin/pledges/region");
   revalidatePath("/we/pledges");
   return { ok: true };

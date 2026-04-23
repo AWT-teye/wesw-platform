@@ -34,7 +34,7 @@ export default async function WePledgesPage() {
 
   const candidateId = candidate?.id as string | undefined;
 
-  const [overviewRes, bigRes, midRes, detailRes, regionRes] = await Promise.all([
+  const [overviewRes, bigRes, midRes, detailRes, regionRes, mapRes] = await Promise.all([
     candidateId
       ? supabase
           .from("pledge_overview")
@@ -68,9 +68,13 @@ export default async function WePledgesPage() {
     supabase
       .from("region_pledges")
       .select(
-        "region_type, region_code, region_name, content, popup_image_url, display_order, is_visible"
+        "id, region_type, region_code, region_name, content, popup_image_url, display_order, is_visible"
       )
       .order("display_order", { ascending: true }),
+    supabase
+      .from("suwon_map_regions")
+      .select("gu_code, gu_name, dong_name, adm_cd2, geojson, region_pledge_id")
+      .order("gu_code", { ascending: true }),
   ]);
 
   const profile = (candidate?.profile_json ?? {}) as { title?: string };
@@ -119,6 +123,7 @@ export default async function WePledgesPage() {
       display_order: p.display_order,
     })),
     regions: (regionRes.data ?? []).map((r) => ({
+      id: r.id,
       region_type: r.region_type,
       region_code: r.region_code,
       region_name: r.region_name,
@@ -126,6 +131,14 @@ export default async function WePledgesPage() {
       popup_image_url: r.popup_image_url,
       display_order: r.display_order,
       is_visible: r.is_visible ?? true,
+    })),
+    suwonMap: (mapRes.data ?? []).map((m) => ({
+      gu_code: m.gu_code as "jangan" | "gwonseon" | "paldal" | "yeongtong",
+      gu_name: m.gu_name,
+      dong_name: m.dong_name,
+      adm_cd2: m.adm_cd2,
+      geojson: m.geojson,
+      region_pledge_id: m.region_pledge_id ?? null,
     })),
   };
 
