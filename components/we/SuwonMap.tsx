@@ -1,360 +1,246 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import * as d3 from "d3";
-import type { FeatureCollection, Geometry } from "geojson";
+import { useMemo, useState } from "react";
+import {
+  GU_LIST,
+  DONG_LIST,
+  SUWON_VIEWBOX,
+  type SuwonGuCode,
+} from "@/data/suwon-map-data";
 
-// ───── 타입 ─────
+// ───── Props ─────
 
-export type SuwonRegion = {
-  gu_code: "jangan" | "gwonseon" | "paldal" | "yeongtong";
-  gu_name: string;
-  dong_name: string;
-  adm_cd2: string;
-  geojson: Geometry;
-  has_pledge: boolean;
+export type RegionPledgeSummary = {
+  gu_code: string;
+  has_content: boolean;
 };
 
 type Props = {
-  regions: SuwonRegion[];
-  onDongClick: (adm_cd2: string, dong_name: string, gu_name: string) => void;
+  regionPledges: RegionPledgeSummary[];
+  onGuClick: (gu_code: SuwonGuCode, gu_name: string) => void;
+  onDongClick: (gu_code: SuwonGuCode, dong_name: string) => void;
 };
 
-// 구별 기본 색상 (1단계 뷰)
-const GU_COLORS: Record<SuwonRegion["gu_code"], string> = {
-  jangan: "#FF6B00",
-  gwonseon: "#FF8C42",
-  paldal: "#FFB347",
-  yeongtong: "#FFC680",
-};
+// 드릴다운 시 확대 viewBox padding (SVG 단위)
+const ZOOM_PADDING = 40;
 
-const GU_LIST: Array<{ code: SuwonRegion["gu_code"]; name: string }> = [
-  { code: "jangan", name: "장안구" },
-  { code: "gwonseon", name: "권선구" },
-  { code: "paldal", name: "팔달구" },
-  { code: "yeongtong", name: "영통구" },
-];
+export default function SuwonMap({
+  regionPledges,
+  onGuClick,
+  onDongClick,
+}: Props) {
+  const [selectedGu, setSelectedGu] = useState<SuwonGuCode | null>(null);
+  const [hoveredGu, setHoveredGu] = useState<SuwonGuCode | null>(null);
+  const [hoveredDong, setHoveredDong] = useState<string | null>(null);
 
-const VIEW_SIZE = 600; // viewBox 기준 한 변
+  // gu_code → has_content
+  const hasContentByGu = useMemo(() => {
+    const m = new Map<string, boolean>();
+    for (const p of regionPledges) m.set(p.gu_code, p.has_content);
+    return m;
+  }, [regionPledges]);
 
-// ───── 컴포넌트 ─────
+  // gu_code → 색상
+  const colorByGu = useMemo(() => {
+    const m = new Map<SuwonGuCode, string>();
+    for (const g of GU_LIST) m.set(g.gu_code, g.color);
+    return m;
+  }, []);
 
-export default function SuwonMap({ regions, onDongClick }: Props) {
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [mode, setMode] = useState<"gu" | "dong">("gu");
-  const [selectedGu, setSelectedGu] = useState<SuwonRegion["gu_code"] | null>(
-    null
+  // 선택된 구의 동 목록과 확대 viewBox
+  const guDongs = useMemo(
+    () =>
+      selectedGu
+        ? DONG_LIST.filter((d) => d.gu_code === selectedGu)
+        : [],
+    [selectedGu]
   );
-  const [tooltip, setTooltip] = useState<{
-    x: number;
-    y: number;
-    text: string;
-  } | null>(null);
 
-  // 1단계 뷰용 FeatureCollection: 구 단위로 묶어서 각 구에 속한 동 경계를 하나로 표시
-  // (d3.geoPath 자체가 MultiPolygon/ FeatureCollection 모두 렌더 가능)
-  const guLayers = useMemo(() => {
-    const byGu = new Map<SuwonRegion["gu_code"], SuwonRegion[]>();
-    for (const r of regions) {
-      const arr = byGu.get(r.gu_code) ?? [];
-      arr.push(r);
-      byGu.set(r.gu_code, arr);
+  const zoomedViewBox = useMemo(() => {
+    if (!selectedGu || guDongs.length === 0) return null;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    for (const d of guDongs) {
+      if (d.minX < minX) minX = d.minX;
+      if (d.minY < minY) minY = d.minY;
+      if (d.maxX > maxX) maxX = d.maxX;
+      if (d.maxY > maxY) maxY = d.maxY;
     }
-    return GU_LIST.map((g) => ({
-      code: g.code,
-      name: g.name,
-      dongs: byGu.get(g.code) ?? [],
-    }));
-  }, [regions]);
+    const x = minX - ZOOM_PADDING;
+    const y = minY - ZOOM_PADDING;
+    const w = maxX - minX + ZOOM_PADDING * 2;
+    const h = maxY - minY + ZOOM_PADDING * 2;
+    return `${x} ${y} ${w} ${h}`;
+  }, [selectedGu, guDongs]);
 
-  // 전체 FeatureCollection (1단계 fitSize용)
-  const allFc = useMemo<FeatureCollection>(() => {
-    return {
-      type: "FeatureCollection",
-      features: regions.map((r) => ({
-        type: "Feature",
-        properties: { adm_cd2: r.adm_cd2 },
-        geometry: r.geojson,
-      })),
-    };
-  }, [regions]);
+  // ───── 드릴다운 뷰 ─────
+  if (selectedGu && zoomedViewBox) {
+    const currentGuName =
+      GU_LIST.find((g) => g.gu_code === selectedGu)?.gu_name ?? "";
+    const hasContent = hasContentByGu.get(selectedGu) ?? false;
 
-  // 선택된 구의 FeatureCollection (2단계 fitSize용)
-  const selectedFc = useMemo<FeatureCollection | null>(() => {
-    if (!selectedGu) return null;
-    const list = regions.filter((r) => r.gu_code === selectedGu);
-    return {
-      type: "FeatureCollection",
-      features: list.map((r) => ({
-        type: "Feature",
-        properties: { adm_cd2: r.adm_cd2 },
-        geometry: r.geojson,
-      })),
-    };
-  }, [regions, selectedGu]);
+    return (
+      <div className="relative w-full">
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedGu(null);
+              setHoveredDong(null);
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-bold text-gray-800 shadow-sm hover:bg-gray-50"
+          >
+            ← 전체 보기
+          </button>
+          <span className="rounded-md bg-[#FF6B00] px-3 py-1 text-xs font-bold text-white">
+            {currentGuName}
+          </span>
+        </div>
 
-  // ───── D3 렌더 (모드/선택/데이터 변경 시) ─────
+        <svg
+          viewBox={zoomedViewBox}
+          role="img"
+          aria-label={`${currentGuName} 행정동 지도`}
+          style={{
+            width: "100%",
+            maxWidth: "600px",
+            margin: "0 auto",
+            display: "block",
+            background: "rgba(255,107,0,0.04)",
+            borderRadius: 12,
+          }}
+        >
+          {guDongs.map((dong) => {
+            const baseFill = hasContent ? "#FF6B00" : "#FFE0C0";
+            const isHover = hoveredDong === dong.adm_cd2;
+            return (
+              <g
+                key={dong.adm_cd2}
+                onMouseEnter={() => setHoveredDong(dong.adm_cd2)}
+                onMouseLeave={() => setHoveredDong(null)}
+                onClick={() => onDongClick(selectedGu, dong.dong_name)}
+                style={{ cursor: "pointer" }}
+              >
+                <path
+                  d={dong.d}
+                  fill={baseFill}
+                  fillOpacity={isHover ? 0.8 : 1}
+                  stroke="white"
+                  strokeWidth={1}
+                  style={{ transition: "fill-opacity 150ms ease" }}
+                />
+              </g>
+            );
+          })}
 
-  useEffect(() => {
-    const svgEl = svgRef.current;
-    if (!svgEl || regions.length === 0) return;
+          {/* 동 라벨 (path 위에 오버레이) */}
+          {guDongs.map((dong) => (
+            <text
+              key={`${dong.adm_cd2}-label`}
+              x={dong.cx}
+              y={dong.cy}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={11}
+              fill="#333"
+              style={{ pointerEvents: "none", userSelect: "none" }}
+            >
+              {dong.dong_name}
+            </text>
+          ))}
+        </svg>
+      </div>
+    );
+  }
 
-    const svg = d3.select(svgEl);
-    svg.selectAll("*").remove();
-
-    const root = svg.append("g").attr("class", "root");
-
-    // 프로젝션
-    const projection = d3.geoMercator();
-    const path = d3.geoPath(projection);
-
-    if (mode === "gu") {
-      projection.fitSize([VIEW_SIZE, VIEW_SIZE - 40], allFc);
-
-      // 각 구를 FeatureCollection으로 합쳐서 단일 path로 그려 "union" 느낌을 냄
-      // (서로 다른 동끼리는 MultiPolygon으로 묶임)
-      const guGroups = root
-        .selectAll<SVGGElement, (typeof guLayers)[number]>("g.gu")
-        .data(guLayers, (d) => d.code)
-        .enter()
-        .append("g")
-        .attr("class", "gu")
-        .style("cursor", "pointer");
-
-      guGroups.each(function (layer) {
-        const fc: FeatureCollection = {
-          type: "FeatureCollection",
-          features: layer.dongs.map((r) => ({
-            type: "Feature",
-            properties: { adm_cd2: r.adm_cd2 },
-            geometry: r.geojson,
-          })),
-        };
-
-        const g = d3.select(this);
-        g.append("path")
-          .attr("d", path(fc) ?? "")
-          .attr("fill", GU_COLORS[layer.code])
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 1.5)
-          .style("transition", "fill 150ms ease")
-          .on("mouseenter", function () {
-            d3.select(this).attr("fill", brighten(GU_COLORS[layer.code], 0.12));
-          })
-          .on("mouseleave", function () {
-            d3.select(this).attr("fill", GU_COLORS[layer.code]);
-          });
-
-        // 구 중앙 라벨
-        const centroid = path.centroid(fc);
-        if (centroid.every((n) => Number.isFinite(n))) {
-          g.append("text")
-            .attr("x", centroid[0])
-            .attr("y", centroid[1])
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .attr("font-size", 16)
-            .attr("font-weight", 800)
-            .attr("fill", "#1a1a1a")
-            .style("pointer-events", "none")
-            .style("user-select", "none")
-            .text(layer.name);
-        }
-      });
-
-      guGroups.on("click", (_e, layer) => {
-        // 페이드 줌인
-        root
-          .transition()
-          .duration(400)
-          .style("opacity", 0)
-          .on("end", () => {
-            setSelectedGu(layer.code);
-            setMode("dong");
-          });
-      });
-    } else if (mode === "dong" && selectedGu && selectedFc) {
-      projection.fitSize([VIEW_SIZE, VIEW_SIZE - 40], selectedFc);
-
-      const dongList = regions.filter((r) => r.gu_code === selectedGu);
-
-      const dongGroups = root
-        .selectAll<SVGGElement, SuwonRegion>("g.dong")
-        .data(dongList, (d) => d.adm_cd2)
-        .enter()
-        .append("g")
-        .attr("class", "dong")
-        .style("cursor", "pointer");
-
-      dongGroups.each(function (r) {
-        const feature = {
-          type: "Feature" as const,
-          properties: { adm_cd2: r.adm_cd2 },
-          geometry: r.geojson,
-        };
-        const g = d3.select(this);
-        const baseFill = r.has_pledge ? "#FF6B00" : "#FFE0C0";
-        g.append("path")
-          .attr("d", path(feature) ?? "")
-          .attr("fill", baseFill)
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 1)
-          .style("transition", "fill 150ms ease")
-          .on("mouseenter", function (event) {
-            d3.select(this).attr("fill", darken(baseFill, 0.1));
-            showTooltip(event, r);
-          })
-          .on("mousemove", (event) => moveTooltip(event))
-          .on("mouseleave", function () {
-            d3.select(this).attr("fill", baseFill);
-            setTooltip(null);
-          })
-          .on("click", () => onDongClick(r.adm_cd2, r.dong_name, r.gu_name));
-
-        // 동 라벨 (중심이 path 내부일 때만, 면적이 너무 작으면 숨김)
-        const [cx, cy] = path.centroid(feature);
-        const area = path.area(feature);
-        if (Number.isFinite(cx) && Number.isFinite(cy) && area > 400) {
-          g.append("text")
-            .attr("x", cx)
-            .attr("y", cy)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .attr("font-size", 10)
-            .attr("font-weight", 700)
-            .attr("fill", "#1a1a1a")
-            .style("pointer-events", "none")
-            .style("user-select", "none")
-            .text(r.dong_name);
-        }
-      });
-
-      // 페이드 인
-      root.style("opacity", 0).transition().duration(400).style("opacity", 1);
-    }
-
-    function showTooltip(event: MouseEvent, r: SuwonRegion) {
-      const rect = svgEl!.getBoundingClientRect();
-      setTooltip({
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-        text: `${r.dong_name} · ${r.has_pledge ? "공약 있음" : "준비중"}`,
-      });
-    }
-    function moveTooltip(event: MouseEvent) {
-      const rect = svgEl!.getBoundingClientRect();
-      setTooltip((t) =>
-        t
-          ? {
-              ...t,
-              x: event.clientX - rect.left,
-              y: event.clientY - rect.top,
-            }
-          : t
-      );
-    }
-  }, [mode, selectedGu, regions, allFc, selectedFc, guLayers, onDongClick]);
-
-  // ───── 렌더 ─────
-
-  const currentGuName =
-    mode === "dong" && selectedGu
-      ? GU_LIST.find((g) => g.code === selectedGu)?.name ?? ""
-      : "";
-
+  // ───── 전체 구 뷰 ─────
   return (
     <div className="relative w-full">
-      {/* 상단 오버레이 */}
-      <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
-        {mode === "gu" ? (
-          <span className="rounded-md bg-white/90 px-3 py-1 text-sm font-bold text-[#FF6B00] shadow">
-            수원특례시
-          </span>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                const svg = svgRef.current;
-                if (!svg) return;
-                const root = d3.select(svg).select("g.root");
-                root
-                  .transition()
-                  .duration(400)
-                  .style("opacity", 0)
-                  .on("end", () => {
-                    setSelectedGu(null);
-                    setMode("gu");
-                  });
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-white/90 px-3 py-1 text-xs font-bold text-gray-800 shadow hover:bg-white"
-            >
-              ← 구 전체 보기
-            </button>
-            <span className="rounded-md bg-[#FF6B00] px-3 py-1 text-xs font-bold text-white shadow">
-              {currentGuName}
-            </span>
-          </>
-        )}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="rounded-md bg-[#FF6B00] px-3 py-1 text-xs font-bold text-white">
+          수원특례시
+        </span>
+        <span className="text-xs text-gray-500">
+          구를 클릭하면 행정동 단위로 확대됩니다.
+        </span>
       </div>
 
       <svg
-        ref={svgRef}
-        viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
+        viewBox={SUWON_VIEWBOX}
         role="img"
-        aria-label={
-          mode === "gu"
-            ? "수원특례시 4개 구 지도"
-            : `${currentGuName} 행정동 지도`
-        }
-        className="h-auto w-full max-w-3xl"
-        style={{ background: "rgba(255,107,0,0.04)", borderRadius: 12 }}
-      />
+        aria-label="수원특례시 4개 구 지도"
+        style={{
+          width: "100%",
+          maxWidth: "600px",
+          margin: "0 auto",
+          display: "block",
+          background: "rgba(255,107,0,0.04)",
+          borderRadius: 12,
+        }}
+      >
+        {/* 구 단위로 묶어서 hover/click을 구 전체로 처리 */}
+        {GU_LIST.map((gu) => {
+          const dongs = DONG_LIST.filter((d) => d.gu_code === gu.gu_code);
+          const color = colorByGu.get(gu.gu_code) ?? "#FF6B00";
+          const hasContent = hasContentByGu.get(gu.gu_code) ?? false;
+          const isHover = hoveredGu === gu.gu_code;
+          // 공약 없는 구: opacity 0.5 / 있는 구: hover 시 약간 밝게
+          const groupOpacity = hasContent ? (isHover ? 0.85 : 1) : 0.5;
 
-      {tooltip && (
-        <div
-          className="pointer-events-none absolute z-20 rounded-md bg-black/80 px-2 py-1 text-xs font-semibold text-white shadow"
-          style={{
-            left: tooltip.x + 12,
-            top: tooltip.y + 12,
-          }}
-        >
-          {tooltip.text}
-        </div>
-      )}
+          return (
+            <g
+              key={gu.gu_code}
+              onMouseEnter={() => setHoveredGu(gu.gu_code)}
+              onMouseLeave={() => setHoveredGu(null)}
+              onClick={() => {
+                setSelectedGu(gu.gu_code);
+                onGuClick(gu.gu_code, gu.gu_name);
+              }}
+              style={{
+                cursor: "pointer",
+                opacity: groupOpacity,
+                transition: "opacity 150ms ease",
+              }}
+            >
+              {dongs.map((dong) => (
+                <path
+                  key={dong.adm_cd2}
+                  d={dong.d}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={0.5}
+                  style={{ transition: "fill 150ms ease" }}
+                />
+              ))}
+            </g>
+          );
+        })}
+
+        {/* 구 라벨 */}
+        {GU_LIST.map((gu) => (
+          <text
+            key={`${gu.gu_code}-label`}
+            x={gu.label_x}
+            y={gu.label_y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={16}
+            fontWeight={700}
+            fill="white"
+            style={{
+              pointerEvents: "none",
+              userSelect: "none",
+              paintOrder: "stroke",
+              stroke: "rgba(0,0,0,0.25)",
+              strokeWidth: 3,
+            }}
+          >
+            {gu.gu_name}
+          </text>
+        ))}
+      </svg>
     </div>
   );
-}
-
-// ───── 색상 유틸 ─────
-
-function hexToRgb(hex: string) {
-  const m = hex.replace("#", "");
-  const v = parseInt(
-    m.length === 3
-      ? m
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : m,
-    16
-  );
-  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
-}
-function rgbToHex(r: number, g: number, b: number) {
-  const h = (n: number) =>
-    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
-  return `#${h(r)}${h(g)}${h(b)}`;
-}
-function brighten(hex: string, amount: number) {
-  const { r, g, b } = hexToRgb(hex);
-  return rgbToHex(
-    r + (255 - r) * amount,
-    g + (255 - g) * amount,
-    b + (255 - b) * amount
-  );
-}
-function darken(hex: string, amount: number) {
-  const { r, g, b } = hexToRgb(hex);
-  return rgbToHex(r * (1 - amount), g * (1 - amount), b * (1 - amount));
 }

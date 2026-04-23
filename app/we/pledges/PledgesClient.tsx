@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import type { Geometry } from "geojson";
-import SuwonMap, { type SuwonRegion } from "@/components/we/SuwonMap";
+import SuwonMap from "@/components/we/SuwonMap";
+import type { SuwonGuCode } from "@/data/suwon-map-data";
 
 // ───── 타입 ─────
 
@@ -50,14 +50,6 @@ export type PledgesData = {
     popup_image_url: string | null;
     display_order: number;
     is_visible: boolean;
-  }>;
-  suwonMap: Array<{
-    gu_code: "jangan" | "gwonseon" | "paldal" | "yeongtong";
-    gu_name: string;
-    dong_name: string;
-    adm_cd2: string;
-    geojson: Geometry;
-    region_pledge_id: string | null;
   }>;
 };
 
@@ -499,34 +491,21 @@ function RegionTab({ data }: { data: PledgesData }) {
   );
   const specials = data.regions.filter((r) => r.region_type === "special");
 
-  // gu 공약이 "보일 만한" 컨텐츠를 가졌는가 (has_pledge 판단용)
-  const pledgeByCode = useMemo(() => {
-    const m = new Map<string, PledgesData["regions"][number]>();
-    for (const r of data.regions) m.set(r.region_code, r);
-    return m;
-  }, [data.regions]);
+  // SuwonMap에 넘길 지도 요약: gu_code별 has_content (visible + content 비어있지 않음)
+  const regionPledges = useMemo(
+    () =>
+      (["jangan", "gwonseon", "paldal", "yeongtong"] as SuwonGuCode[]).map(
+        (code) => {
+          const r = gus.find((g) => g.region_code === code);
+          const has_content =
+            !!r && !!r.is_visible && !!(r.content && r.content.trim().length > 0);
+          return { gu_code: code, has_content };
+        }
+      ),
+    [gus]
+  );
 
-  // suwon_map_regions → SuwonRegion[] 변환 (has_pledge 계산)
-  const suwonRegions = useMemo<SuwonRegion[]>(() => {
-    return data.suwonMap.map((m) => {
-      const gu = pledgeByCode.get(m.gu_code);
-      const hasPledge =
-        !!m.region_pledge_id ||
-        !!(gu && gu.is_visible && (gu.content || gu.popup_image_url));
-      return {
-        gu_code: m.gu_code,
-        gu_name: m.gu_name,
-        dong_name: m.dong_name,
-        adm_cd2: m.adm_cd2,
-        geojson: m.geojson,
-        has_pledge: hasPledge,
-      };
-    });
-  }, [data.suwonMap, pledgeByCode]);
-
-  // 활성화된 모달 상태
-  // - gu 단위 모달 (동 클릭 시 해당 gu_code의 region_pledges 렌더)
-  // - special 카드 모달은 region_code 그대로
+  // 모달 상태
   const [activeCode, setActiveCode] = useState<string | null>(null);
   const [activeDong, setActiveDong] = useState<{
     gu_name: string;
@@ -538,7 +517,7 @@ function RegionTab({ data }: { data: PledgesData }) {
     [data.regions]
   );
 
-  // URL 해시 동기화 (#jangan-파장동, #talent-edu 등)
+  // URL 해시 동기화 (#jangan, #jangan-파장동, #talent-edu 등)
   useEffect(() => {
     const applyHash = () => {
       const hash = decodeURIComponent(
@@ -549,12 +528,12 @@ function RegionTab({ data }: { data: PledgesData }) {
         setActiveDong(null);
         return;
       }
-      const [guCode, dongName] = hash.split("-");
-      const r = byCode(guCode);
+      const [code, dongName] = hash.split("-");
+      const r = byCode(code);
       if (r) {
         setActiveCode(r.region_code);
         if (dongName) {
-          const gu = gus.find((g) => g.region_code === guCode);
+          const gu = gus.find((g) => g.region_code === code);
           if (gu) setActiveDong({ gu_name: gu.region_name, dong_name: dongName });
         } else {
           setActiveDong(null);
@@ -580,21 +559,34 @@ function RegionTab({ data }: { data: PledgesData }) {
     }
   }
 
-  function openDong(_adm_cd2: string, dong_name: string, gu_name: string) {
-    // gu_name으로 gu_code 역매핑 → region_pledges 조회
-    const gu = gus.find((g) => g.region_name === gu_name);
+  function handleGuClick(gu_code: SuwonGuCode, _gu_name: string) {
+    const r = byCode(gu_code);
+    if (!r) return;
+    if (!r.is_visible) {
+      alert("해당 구 공약은 준비중입니다.");
+      return;
+    }
+    setActiveCode(gu_code);
+    setActiveDong(null);
+    if (typeof window !== "undefined") {
+      history.replaceState(null, "", `#${gu_code}`);
+    }
+  }
+
+  function handleDongClick(gu_code: SuwonGuCode, dong_name: string) {
+    const gu = byCode(gu_code);
     if (!gu) return;
     if (!gu.is_visible) {
       alert("해당 구 공약은 준비중입니다.");
       return;
     }
-    setActiveCode(gu.region_code);
-    setActiveDong({ gu_name, dong_name });
+    setActiveCode(gu_code);
+    setActiveDong({ gu_name: gu.region_name, dong_name });
     if (typeof window !== "undefined") {
       history.replaceState(
         null,
         "",
-        `#${gu.region_code}-${encodeURIComponent(dong_name)}`
+        `#${gu_code}-${encodeURIComponent(dong_name)}`
       );
     }
   }
@@ -618,14 +610,11 @@ function RegionTab({ data }: { data: PledgesData }) {
       </p>
 
       <div className="mt-5">
-        {suwonRegions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-            수원시 행정동 지도 데이터가 없습니다. 관리자가 마이그레이션을
-            적용하면 표시됩니다.
-          </div>
-        ) : (
-          <SuwonMap regions={suwonRegions} onDongClick={openDong} />
-        )}
+        <SuwonMap
+          regionPledges={regionPledges}
+          onGuClick={handleGuClick}
+          onDongClick={handleDongClick}
+        />
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3">
