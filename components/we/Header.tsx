@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/we/intro", label: "후보소개" },
   { href: "/we/pledges", label: "후보공약" },
   { href: "/we/sns", label: "후보SNS" },
+  { href: "/we/schedule", label: "후보일정" },
   {
     href: "https://forms.gle/E6upekzVEfzZHwP76",
     label: "서포터즈신청",
