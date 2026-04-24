@@ -21,6 +21,7 @@ const NAV = [
   { href: "/admin/candidate/sns", label: "SNS링크" },
   { href: "/admin/sns", label: "SNS관리" },
   { href: "/admin/org", label: "조직도" },
+  { href: "/admin/organization", label: "조직도관리" },
   { href: "/admin/observers", label: "참관인신청" },
   { href: "/admin/schedule", label: "일정관리" },
   { href: "/admin/propose", label: "공약제안" },
