@@ -3,8 +3,11 @@
 import { useState, useTransition } from "react";
 import {
   createCandidateSchedule,
+  createElectionSchedule,
   deleteCandidateSchedule,
+  deleteElectionSchedule,
   toggleCandidateScheduleVisible,
+  toggleElectionPastHidden,
   updateCandidateSchedule,
   updateElectionSchedule,
 } from "./actions";
@@ -26,10 +29,12 @@ export type AdminElectionSchedule = {
   id: string;
   title: string;
   scheduled_date: string;
+  end_date: string | null;
   description: string | null;
   badge_label: string | null;
   display_order: number;
   is_visible: boolean;
+  is_past_hidden: boolean;
 };
 
 type FormState = {
@@ -390,13 +395,23 @@ export default function AdminScheduleClient({
       <section>
         <h2 className="text-xl font-extrabold">선거 공식 일정</h2>
         <p className="mt-1 text-sm text-gray-500">
-          우측 타임라인 패널에 표시됩니다. 각 항목의 제목/날짜/뱃지/순서를 수정하세요.
+          우측 타임라인 패널에 표시됩니다. 지난 일정은 자동 감지되며 &quot;숨김
+          처리&quot; 토글로 흐리게 표시할 수 있습니다.
         </p>
 
-        <div className="mt-5 space-y-3">
-          {electionSchedules.map((e) => (
-            <ElectionRow key={e.id} row={e} />
-          ))}
+        <ElectionCreateForm />
+
+        <div className="orange-scroll mt-5 max-h-[600px] overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <div className="space-y-3">
+            {electionSchedules.length === 0 && (
+              <p className="py-8 text-center text-xs text-gray-400">
+                등록된 선거 일정이 없습니다.
+              </p>
+            )}
+            {electionSchedules.map((e) => (
+              <ElectionRow key={e.id} row={e} />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -415,6 +430,24 @@ export default function AdminScheduleClient({
         .input:focus {
           border-color: #FF6B00;
           box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.15);
+        }
+        .orange-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 107, 0, 0.6) transparent;
+        }
+        .orange-scroll::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .orange-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .orange-scroll::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 107, 0, 0.55);
+          border-radius: 9999px;
+        }
+        .orange-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(255, 107, 0, 0.8);
         }
       `}</style>
     </div>
@@ -440,10 +473,192 @@ function Field({
   );
 }
 
+function todayYMD(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}-${m < 10 ? `0${m}` : m}-${day < 10 ? `0${day}` : day}`;
+}
+
+function isPastEnd(endYMD: string | null, startYMD: string): boolean {
+  const target = endYMD ?? startYMD;
+  return target < todayYMD();
+}
+
+function ElectionCreateForm() {
+  const [title, setTitle] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [badgeLabel, setBadgeLabel] = useState<
+    "" | "완료" | "예정" | "D-DAY" | "선거일"
+  >("예정");
+  const [displayOrder, setDisplayOrder] = useState<number>(0);
+  const [isVisible, setIsVisible] = useState(true);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const reset = () => {
+    setTitle("");
+    setScheduledDate("");
+    setEndDate("");
+    setDescription("");
+    setBadgeLabel("예정");
+    setDisplayOrder(0);
+    setIsVisible(true);
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    setErr(null);
+    startTransition(async () => {
+      const res = await createElectionSchedule({
+        title,
+        scheduled_date: scheduledDate,
+        end_date: endDate || null,
+        description,
+        badge_label: badgeLabel || null,
+        display_order: Number(displayOrder) || 0,
+        is_visible: isVisible,
+        is_past_hidden: false,
+      });
+      if ("error" in res && res.error) {
+        setErr(res.error);
+      } else {
+        setMsg("등록되었습니다.");
+        reset();
+      }
+    });
+  };
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="mt-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+    >
+      <h3 className="text-sm font-bold text-gray-900">선거 일정 추가</h3>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6">
+        <label className="md:col-span-3">
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            제목 *
+          </span>
+          <input
+            type="text"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="input"
+            placeholder="예: 투표소 공고"
+          />
+        </label>
+        <label>
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            badge
+          </span>
+          <select
+            value={badgeLabel}
+            onChange={(e) =>
+              setBadgeLabel(
+                e.target.value as "" | "완료" | "예정" | "D-DAY" | "선거일"
+              )
+            }
+            className="input"
+          >
+            <option value="">없음</option>
+            <option value="완료">완료</option>
+            <option value="예정">예정</option>
+            <option value="D-DAY">D-DAY</option>
+            <option value="선거일">선거일</option>
+          </select>
+        </label>
+        <label>
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            순서
+          </span>
+          <input
+            type="number"
+            value={displayOrder}
+            onChange={(e) => setDisplayOrder(Number(e.target.value))}
+            className="input"
+          />
+        </label>
+        <label>
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            노출
+          </span>
+          <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isVisible}
+              onChange={(e) => setIsVisible(e.target.checked)}
+            />
+            {isVisible ? "ON" : "OFF"}
+          </label>
+        </label>
+
+        <label className="md:col-span-2">
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            시작날짜 *
+          </span>
+          <input
+            type="date"
+            required
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value)}
+            className="input"
+          />
+        </label>
+        <label className="md:col-span-2">
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            종료날짜 (선택)
+          </span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="input"
+            placeholder="비우면 시작날짜와 동일"
+          />
+        </label>
+
+        <label className="md:col-span-6">
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            설명
+          </span>
+          <textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="input"
+          />
+        </label>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-[#FF6B00] px-5 py-2 text-sm font-bold text-white hover:bg-[#e55f00] disabled:opacity-50"
+        >
+          추가
+        </button>
+        {msg && <span className="text-xs text-green-600">{msg}</span>}
+        {err && <span className="text-xs text-red-600">{err}</span>}
+      </div>
+    </form>
+  );
+}
+
 function ElectionRow({ row }: { row: AdminElectionSchedule }) {
   const [form, setForm] = useState({
     title: row.title,
     scheduled_date: row.scheduled_date,
+    end_date: row.end_date ?? "",
     description: row.description ?? "",
     badge_label: row.badge_label ?? "",
     display_order: row.display_order,
@@ -453,6 +668,8 @@ function ElectionRow({ row }: { row: AdminElectionSchedule }) {
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const past = isPastEnd(row.end_date, row.scheduled_date);
+
   const onSave = () => {
     setMsg(null);
     setErr(null);
@@ -461,18 +678,67 @@ function ElectionRow({ row }: { row: AdminElectionSchedule }) {
         id: row.id,
         title: form.title,
         scheduled_date: form.scheduled_date,
+        end_date: form.end_date || null,
         description: form.description,
         badge_label: form.badge_label,
         display_order: Number(form.display_order) || 0,
         is_visible: form.is_visible,
+        is_past_hidden: row.is_past_hidden,
       });
       if ("error" in res && res.error) setErr(res.error);
       else setMsg("저장되었습니다.");
     });
   };
 
+  const onTogglePastHidden = (next: boolean) => {
+    startTransition(async () => {
+      const res = await toggleElectionPastHidden(row.id, next);
+      if ("error" in res && res.error) setErr(res.error);
+    });
+  };
+
+  const onDelete = () => {
+    if (!window.confirm("이 선거 일정을 삭제하시겠습니까?")) return;
+    startTransition(async () => {
+      const res = await deleteElectionSchedule(row.id);
+      if ("error" in res && res.error) setErr(res.error);
+    });
+  };
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div
+      className={[
+        "rounded-xl border p-4 shadow-sm transition",
+        past
+          ? "border-gray-200 bg-gray-100"
+          : "border-gray-200 bg-white",
+      ].join(" ")}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {past && (
+            <span className="rounded-full bg-gray-400 px-2 py-0.5 text-[10px] font-bold text-white">
+              지난 일정
+            </span>
+          )}
+          {row.badge_label && (
+            <span className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-bold text-gray-700">
+              {row.badge_label}
+            </span>
+          )}
+          <span className="text-[11px] text-gray-500">#{row.display_order}</span>
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-gray-600">
+          <input
+            type="checkbox"
+            checked={row.is_past_hidden}
+            onChange={(e) => onTogglePastHidden(e.target.checked)}
+            disabled={pending}
+          />
+          숨김 처리
+        </label>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
         <label className="md:col-span-2">
           <span className="mb-1 block text-xs font-bold text-gray-700">
@@ -489,13 +755,26 @@ function ElectionRow({ row }: { row: AdminElectionSchedule }) {
         </label>
         <label>
           <span className="mb-1 block text-xs font-bold text-gray-700">
-            날짜
+            시작날짜
           </span>
           <input
             type="date"
             value={form.scheduled_date}
             onChange={(e) =>
               setForm((s) => ({ ...s, scheduled_date: e.target.value }))
+            }
+            className="input"
+          />
+        </label>
+        <label>
+          <span className="mb-1 block text-xs font-bold text-gray-700">
+            종료날짜
+          </span>
+          <input
+            type="date"
+            value={form.end_date}
+            onChange={(e) =>
+              setForm((s) => ({ ...s, end_date: e.target.value }))
             }
             className="input"
           />
@@ -573,6 +852,14 @@ function ElectionRow({ row }: { row: AdminElectionSchedule }) {
           className="rounded-md bg-[#FF6B00] px-4 py-2 text-sm font-bold text-white hover:bg-[#e55f00] disabled:opacity-50"
         >
           저장
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={pending}
+          className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+        >
+          삭제
         </button>
         {msg && <span className="text-xs text-green-600">{msg}</span>}
         {err && <span className="text-xs text-red-600">{err}</span>}

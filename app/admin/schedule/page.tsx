@@ -20,7 +20,7 @@ export default async function AdminSchedulePage() {
     supabase
       .from("election_schedules")
       .select(
-        "id, title, scheduled_date, description, badge_label, display_order, is_visible"
+        "id, title, scheduled_date, end_date, description, badge_label, display_order, is_visible, is_past_hidden"
       )
       .order("display_order", { ascending: true }),
   ]);

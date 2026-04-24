@@ -40,7 +40,7 @@ export default async function WeSchedulePage() {
     supabase
       .from("election_schedules")
       .select(
-        "id, title, scheduled_date, description, badge_label, badge_color, display_order"
+        "id, title, scheduled_date, end_date, description, badge_label, badge_color, display_order, is_past_hidden"
       )
       .eq("is_visible", true)
       .order("display_order", { ascending: true }),

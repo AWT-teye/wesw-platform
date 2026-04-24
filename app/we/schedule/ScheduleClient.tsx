@@ -18,10 +18,12 @@ export type ElectionSchedule = {
   id: string;
   title: string;
   scheduled_date: string;
+  end_date: string | null;
   description: string | null;
   badge_label: string | null;
   badge_color: string | null;
   display_order: number;
+  is_past_hidden: boolean;
 };
 
 type Props = {
@@ -352,37 +354,84 @@ export default function ScheduleClient({
           2026 제9회 전국동시지방선거
         </p>
 
-        <ol className="relative mt-5 space-y-5 border-l-2 border-[#FF6B00] pl-5">
-          {electionSchedules.map((e) => {
-            const past = new Date(e.scheduled_date) < today;
-            return (
-              <li
-                key={e.id}
-                className={past ? "relative opacity-50" : "relative"}
-              >
-                <span
-                  aria-hidden
-                  className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-[#FF6B00] bg-white"
-                />
-                <BadgePill label={e.badge_label} />
-                <p className="mt-1 text-sm font-bold text-gray-900">
-                  {formatDateKorean(e.scheduled_date)}
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {e.title}
-                </p>
-                {e.description && (
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                    {e.description}
+        <div className="orange-scroll mt-5 max-h-none overflow-visible md:max-h-[600px] md:overflow-y-auto">
+          <ol className="relative space-y-5 border-l-2 border-[#FF6B00] pl-5 pr-1">
+            {electionSchedules.map((e) => {
+              const endKey = e.end_date ?? e.scheduled_date;
+              const past = new Date(endKey) < today;
+              const hidden = !!e.is_past_hidden;
+              const opacityClass = hidden
+                ? "opacity-40"
+                : past
+                ? "opacity-50"
+                : "";
+              return (
+                <li key={e.id} className={`relative ${opacityClass}`}>
+                  <span
+                    aria-hidden
+                    className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-[#FF6B00] bg-white"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <BadgePill label={e.badge_label} />
+                    {hidden && (
+                      <span className="text-[10px] font-bold text-gray-400">
+                        (완료)
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">
+                    {formatDateRange(e.scheduled_date, e.end_date)}
                   </p>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {e.title}
+                  </p>
+                  {e.description && (
+                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                      {e.description}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </aside>
+
+      <style>{`
+        .orange-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 107, 0, 0.6) transparent;
+        }
+        .orange-scroll::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .orange-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .orange-scroll::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 107, 0, 0.55);
+          border-radius: 9999px;
+        }
+        .orange-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(255, 107, 0, 0.8);
+        }
+      `}</style>
     </div>
   );
+}
+
+function formatDateRange(start: string, end: string | null): string {
+  if (!end || end === start) return formatDateKorean(start);
+  const [sy, sm, sd] = start.split("-").map(Number);
+  const [ey, em, ed] = end.split("-").map(Number);
+  if (sy === ey && sm === em) {
+    return `${sy}. ${sm}. ${sd} ~ ${ed}.`;
+  }
+  if (sy === ey) {
+    return `${sy}. ${sm}. ${sd} ~ ${em}. ${ed}.`;
+  }
+  return `${sy}. ${sm}. ${sd}. ~ ${ey}. ${em}. ${ed}.`;
 }
 
 function formatDateKorean(iso: string): string {

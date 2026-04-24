@@ -105,34 +105,85 @@ export async function toggleCandidateScheduleVisible(
 // ───── 선거 공식 일정 ─────
 
 export type ElectionScheduleInput = {
-  id: string;
+  id?: string;
   title: string;
   scheduled_date: string;
+  end_date?: string | null;
   description?: string | null;
   badge_label?: string | null;
   display_order: number;
   is_visible: boolean;
+  is_past_hidden?: boolean;
 };
 
-export async function updateElectionSchedule(input: ElectionScheduleInput) {
-  if (!input.id) return { error: "id required" };
+function buildElectionPayload(input: ElectionScheduleInput) {
   const title = input.title.trim();
-  if (!title) return { error: "제목을 입력해 주세요." };
+  if (!title) return { error: "제목을 입력해 주세요." as const };
   if (!input.scheduled_date)
-    return { error: "날짜를 선택해 주세요." };
+    return { error: "시작날짜를 선택해 주세요." as const };
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("election_schedules")
-    .update({
+  const endRaw = input.end_date?.trim();
+  const end_date = endRaw ? endRaw : input.scheduled_date;
+
+  return {
+    payload: {
       title,
       scheduled_date: input.scheduled_date,
+      end_date,
       description: input.description?.trim() || null,
       badge_label: input.badge_label?.trim() || null,
       display_order: input.display_order,
       is_visible: !!input.is_visible,
-    })
+      is_past_hidden: !!input.is_past_hidden,
+    },
+  };
+}
+
+export async function createElectionSchedule(input: ElectionScheduleInput) {
+  const s = buildElectionPayload(input);
+  if ("error" in s) return { error: s.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("election_schedules")
+    .insert(s.payload);
+  if (error) return { error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function updateElectionSchedule(input: ElectionScheduleInput) {
+  if (!input.id) return { error: "id required" };
+  const s = buildElectionPayload(input);
+  if ("error" in s) return { error: s.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("election_schedules")
+    .update(s.payload)
     .eq("id", input.id);
+  if (error) return { error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function toggleElectionPastHidden(id: string, next: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("election_schedules")
+    .update({ is_past_hidden: next })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidateAll();
+  return { ok: true };
+}
+
+export async function deleteElectionSchedule(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("election_schedules")
+    .delete()
+    .eq("id", id);
   if (error) return { error: error.message };
   revalidateAll();
   return { ok: true };
