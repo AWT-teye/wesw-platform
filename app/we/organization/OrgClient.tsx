@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export type OrgNode = {
   id: string;
@@ -474,7 +480,52 @@ function FullOrgChartPC({ nodes }: { nodes: OrgNode[] }) {
     return m;
   }, [nodes]);
 
-  const [scale, setScale] = useState<number>(0.85);
+  // auto-fit: 컨테이너 폭 / 뷰포트 높이에 맞춰 스케일을 계산
+  // userScale 이 설정되면 사용자의 명시적 배율이 우선
+  const [fitScale, setFitScale] = useState<number>(0.85);
+  const [userScale, setUserScale] = useState<number | null>(null);
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number }>({
+    w: 0,
+    h: 0,
+  });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const scale = userScale ?? fitScale;
+  const isAutoFit = userScale === null;
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const container = containerRef.current;
+      const content = contentRef.current;
+      if (!container || !content) return;
+
+      // scale=1일 때의 자연 크기를 측정
+      const prev = content.style.transform;
+      content.style.transform = "none";
+      const nw = content.offsetWidth;
+      const nh = content.offsetHeight;
+      content.style.transform = prev;
+
+      setNaturalSize({ w: nw, h: nh });
+
+      const cw = container.clientWidth;
+      const maxH = Math.max(420, window.innerHeight * 0.82);
+      const sx = nw > 0 ? cw / nw : 1;
+      const sy = nh > 0 ? maxH / nh : 1;
+      const s = Math.min(sx, sy, 1);
+      setFitScale(Math.max(0.3, +s.toFixed(3)));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [nodes]);
 
   const getN = (k: string): OrgNode | undefined => byKey.get(k);
 
@@ -514,10 +565,22 @@ function FullOrgChartPC({ nodes }: { nodes: OrgNode[] }) {
   if (!chair || !sec) return null;
 
   const zoomIn = () =>
-    setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)));
+    setUserScale((s) =>
+      Math.min(1.5, +(((s ?? fitScale) + 0.1)).toFixed(2))
+    );
   const zoomOut = () =>
-    setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)));
-  const zoomReset = () => setScale(0.85);
+    setUserScale((s) =>
+      Math.max(0.3, +(((s ?? fitScale) - 0.1)).toFixed(2))
+    );
+  const zoomReset = () => setUserScale(null); // 자동 맞춤으로 복귀
+
+  // 측정이 완료된 상태에서만 wrapper 크기를 적용
+  const measured = naturalSize.w > 0 && naturalSize.h > 0;
+  const wrapperW = measured ? naturalSize.w * scale : undefined;
+  const wrapperH = measured ? naturalSize.h * scale : undefined;
+
+  // 사용자가 자동맞춤보다 크게 확대 → 가로 스크롤 허용
+  const allowScrollX = !isAutoFit && scale > fitScale + 0.001;
 
   return (
     <section className="mx-auto mt-6 max-w-6xl px-4">
@@ -532,8 +595,11 @@ function FullOrgChartPC({ nodes }: { nodes: OrgNode[] }) {
           >
             −
           </button>
-          <span className="w-12 select-none text-center text-xs font-semibold text-gray-500">
+          <span className="inline-flex w-20 select-none items-center justify-center gap-1 text-center text-xs font-semibold text-gray-500">
             {Math.round(scale * 100)}%
+            {isAutoFit && (
+              <span className="text-[9px] font-bold text-[#FF6B00]">AUTO</span>
+            )}
           </span>
           <button
             type="button"
@@ -547,72 +613,93 @@ function FullOrgChartPC({ nodes }: { nodes: OrgNode[] }) {
             type="button"
             onClick={zoomReset}
             className="zbtn-text"
-            aria-label="기본 배율로 리셋"
+            aria-label="자동 맞춤으로 복귀"
           >
-            리셋
+            자동맞춤
           </button>
         </div>
 
-        <div className="min-h-[70vh] overflow-x-auto p-6 pt-14">
+        <div
+          ref={containerRef}
+          className="px-6 pb-6 pt-14"
+          style={{
+            overflowX: allowScrollX ? "auto" : "hidden",
+            overflowY: "hidden",
+          }}
+        >
           <div
             className="mx-auto"
             style={{
-              minWidth: 1200,
-              transform: `scale(${scale})`,
-              transformOrigin: "top center",
+              width: wrapperW ? `${wrapperW}px` : undefined,
+              height: wrapperH ? `${wrapperH}px` : undefined,
+              position: "relative",
             }}
           >
-            <div className="flex flex-col items-center">
-              {/* Row 1 — 총괄선거대책위원장 */}
-              <FullCard
-                node={chair}
-                width={220}
-                bg="#FF6B00"
-                textColor="#fff"
-                borderColor="#FF6B00"
-              />
+            <div
+              ref={contentRef}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+                width: "max-content",
+                position: "absolute",
+                top: 0,
+                left: 0,
+              }}
+            >
+              <div className="flex flex-col items-center">
+                {/* Row 1 — 총괄선거대책위원장 */}
+                <FullCard
+                  node={chair}
+                  width={220}
+                  bg="#FF6B00"
+                  textColor="#fff"
+                  borderColor="#FF6B00"
+                />
 
-              {/* 위원장 → 버스 → 위원회 + 중앙 트렁크 */}
-              <VLine h={20} />
-              <CommitteesSection committees={committees} />
+                {/* 위원장 → 버스 → 위원회 + 중앙 트렁크 */}
+                <VLine h={20} />
+                <CommitteesSection committees={committees} />
 
-              {/* 트렁크 → 사무국장 */}
-              <VLine h={20} />
+                {/* 트렁크 → 사무국장 */}
+                <VLine h={20} />
 
-              {/* Row 2 — 사무국장 */}
-              <FullCard
-                node={sec}
-                width={220}
-                bg="#FEE2E2"
-                textColor="#7F1D1D"
-                borderColor="#FCA5A5"
-              />
+                {/* Row 2 — 사무국장 */}
+                <FullCard
+                  node={sec}
+                  width={220}
+                  bg="#FEE2E2"
+                  textColor="#7F1D1D"
+                  borderColor="#FCA5A5"
+                />
 
-              <VLine h={24} />
+                <VLine h={24} />
 
-              {/* Row 3 — 스태프 라인 (PL + Staff + staff teams) + 중앙 트렁크 */}
-              <StaffSection
-                pl={pl}
-                staff={staff}
-                staffTeams={staffTeams}
-              />
+                {/* Row 3 — 스태프 라인 (PL + Staff + staff teams) + 중앙 트렁크 */}
+                <StaffSection
+                  pl={pl}
+                  staff={staff}
+                  staffTeams={staffTeams}
+                />
 
-              {/* Row 4 — 3그룹 */}
-              <GroupsSection
-                g1={g1}
-                g2={g2}
-                g3={g3}
-                g1Teams={g1Teams}
-                g2Teams={g2Teams}
-                g3Teams={g3Teams}
-              />
+                {/* Row 4 — 3그룹 */}
+                <GroupsSection
+                  g1={g1}
+                  g2={g2}
+                  g3={g3}
+                  g1Teams={g1Teams}
+                  g2Teams={g2Teams}
+                  g3Teams={g3Teams}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <p className="mt-2 text-right text-xs text-gray-400">
-        줌 컨트롤로 배율을 조절하거나 가로로 스크롤하세요
+        {isAutoFit
+          ? "화면 크기에 맞춰 자동 축소됩니다. +/- 로 배율을 조절하세요."
+          : "‘자동맞춤’을 누르면 한 화면에 맞춰 다시 배율이 조정됩니다."}
       </p>
 
       <style>{`
