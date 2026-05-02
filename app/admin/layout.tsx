@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/carousel", label: "캐러셀" },
+  { href: "/admin/hero", label: "메인이미지" },
   { href: "/admin/blocks/we_camp_intro", label: "캠프소개" },
   { href: "/admin/announcements", label: "한마디" },
   { href: "/admin/blocks/we_slogan", label: "슬로건" },

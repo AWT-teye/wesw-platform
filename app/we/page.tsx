@@ -1,8 +1,39 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import CrisisSection from "@/components/we/CrisisSection";
 import FactCheckSection from "@/components/we/FactCheckSection";
 import PopupModal from "@/components/we/PopupModal";
+
+type HeroSettings = {
+  background_image_url: string | null;
+  overlay_opacity: number | null;
+  overlay_color: string | null;
+  use_image_background: boolean | null;
+  badge_text: string | null;
+  headline_main: string | null;
+  headline_accent: string | null;
+  subline: string | null;
+  cta_primary_text: string | null;
+  cta_primary_url: string | null;
+  cta_secondary_text: string | null;
+  cta_secondary_url: string | null;
+};
+
+const HERO_DEFAULTS: HeroSettings = {
+  background_image_url: null,
+  overlay_opacity: 0.5,
+  overlay_color: "#000000",
+  use_image_background: false,
+  badge_text: "WE SUWON",
+  headline_main: "모든 가능성을,",
+  headline_accent: "모두에게",
+  subline: "정희윤이 만드는 수원 9.0",
+  cta_primary_text: "공약 보기",
+  cta_primary_url: "/we/pledges",
+  cta_secondary_text: "서포터즈 신청",
+  cta_secondary_url: "/we/supporters",
+};
 
 /**
  * we.wesw.kr 메인페이지
@@ -19,6 +50,7 @@ async function fetchAll() {
   const supabase = await createClient();
 
   const [
+    hero,
     slides,
     intro,
     crisisStats,
@@ -33,6 +65,15 @@ async function fetchAll() {
     factChecks,
     popup,
   ] = await Promise.all([
+    supabase
+      .from("hero_settings")
+      .select(
+        "background_image_url, overlay_opacity, overlay_color, use_image_background, badge_text, headline_main, headline_accent, subline, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url"
+      )
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("hero_slides")
       .select("id, title, subtitle, image_url")
@@ -112,6 +153,7 @@ async function fetchAll() {
   ]);
 
   return {
+    hero: (hero.data ?? null) as HeroSettings | null,
     slides: slides.data ?? [],
     intro: intro.data,
     crisisStats: crisisStats.data,
@@ -148,7 +190,7 @@ export default async function WeMainPage() {
           buttonLink={popupJson?.button_link ?? null}
         />
       )}
-      <HeroSection />
+      <HeroSection settings={data.hero} />
       <StatsSection />
       <CarouselSection slides={data.slides} />
       <CrisisSection
@@ -173,37 +215,101 @@ export default async function WeMainPage() {
 // 섹션들
 // ──────────────────────────────────────────────────────────
 
-function HeroSection() {
+function HeroSection({ settings }: { settings: HeroSettings | null }) {
+  const s = { ...HERO_DEFAULTS, ...(settings ?? {}) };
+  const showImage = !!s.use_image_background && !!s.background_image_url;
+
+  // overlay color (#RRGGBB) → rgba(...)
+  const overlayRgba = (() => {
+    const hex = (s.overlay_color || "#000000").replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16) || 0;
+    const g = parseInt(hex.slice(2, 4), 16) || 0;
+    const b = parseInt(hex.slice(4, 6), 16) || 0;
+    const a = s.overlay_opacity ?? 0.5;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  })();
+
+  const isExternalPrimary = !!s.cta_primary_url?.startsWith("http");
+  const isExternalSecondary = !!s.cta_secondary_url?.startsWith("http");
+
   return (
     <section className="relative overflow-hidden bg-[#0a0a0a]">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FF6B00]/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#FF6B00]/5 rounded-full blur-3xl" />
-      </div>
+      {showImage ? (
+        <>
+          <Image
+            src={s.background_image_url!}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0" style={{ backgroundColor: overlayRgba }} />
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
+        </>
+      ) : (
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FF6B00]/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#FF6B00]/5 rounded-full blur-3xl" />
+        </div>
+      )}
       <div className="relative mx-auto max-w-5xl px-4 py-24 md:py-32 text-center">
-        <p className="text-[#FF6B00] text-sm font-semibold tracking-widest uppercase mb-4">WE SUWON</p>
+        {s.badge_text && (
+          <p className="text-[#FF6B00] text-sm font-semibold tracking-widest uppercase mb-4">
+            {s.badge_text}
+          </p>
+        )}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6">
-          모든 가능성을,<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#ff8a3d]">모두에게</span>
+          {s.headline_main}
+          {s.headline_accent && (
+            <>
+              <br />
+              <span className="text-[#FF6B00]">{s.headline_accent}</span>
+            </>
+          )}
         </h1>
-        <p className="text-lg md:text-xl text-gray-400 mb-10">
-          정희윤이 만드는 <span className="text-[#FF6B00] font-semibold">수원 9.0</span>
-        </p>
+        {s.subline && (
+          <p className="text-lg md:text-xl text-gray-200 mb-10">{s.subline}</p>
+        )}
         <div className="flex items-center justify-center gap-4 flex-wrap">
-          <Link
-            href="/we/pledges"
-            className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
-          >
-            공약 보기
-          </Link>
-          <a
-            href="https://forms.gle/E6upekzVEfzZHwP76"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors"
-          >
-            서포터즈 신청
-          </a>
+          {s.cta_primary_text && s.cta_primary_url && (
+            isExternalPrimary ? (
+              <a
+                href={s.cta_primary_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
+              >
+                {s.cta_primary_text}
+              </a>
+            ) : (
+              <Link
+                href={s.cta_primary_url}
+                className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
+              >
+                {s.cta_primary_text}
+              </Link>
+            )
+          )}
+          {s.cta_secondary_text && s.cta_secondary_url && (
+            isExternalSecondary ? (
+              <a
+                href={s.cta_secondary_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors bg-black/20"
+              >
+                {s.cta_secondary_text}
+              </a>
+            ) : (
+              <Link
+                href={s.cta_secondary_url}
+                className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors bg-black/20"
+              >
+                {s.cta_secondary_text}
+              </Link>
+            )
+          )}
         </div>
       </div>
     </section>
