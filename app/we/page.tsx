@@ -271,47 +271,45 @@ function HeroSection({ settings }: { settings: HeroSettings | null }) {
     );
   };
 
-  // ───────────── 이미지 배경 모드 (모바일 3:4 cover, 데스크톱 16:9 + image_fit) ─────────────
+  // ───────────── 이미지 배경 모드 ─────────────
+  // contain: aspect-[3/4] (모바일) → md:aspect-[16/9] (데스크톱) — 양옆 검정 여백 가능, 잘림 없음
+  // cover  : h-[85vh] 고정 — 화면 꽉 채움, 잘림 가능
+  // 모바일 이미지는 항상 cover (텍스트 가독성·세로 강화 우선)
   if (showImage) {
-    const desktopFitCls =
-      imageFit === "cover" ? "md:object-cover" : "md:object-contain";
-    return (
-      <section className="relative overflow-hidden bg-[#0a0a0a] aspect-[3/4] min-h-[600px] md:aspect-[16/9] md:min-h-[500px] md:max-h-[80vh]">
-        {/* 모바일: cover (인물 중앙 보존, 잘림 허용) */}
-        <Image
-          src={s.background_image_url!}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center md:hidden"
-        />
-        {/* 데스크톱: 운영자 선택 (contain 기본 / cover 옵션) */}
-        <Image
-          src={s.background_image_url!}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className={`hidden object-center md:block ${desktopFitCls}`}
-        />
-        {/* 색상 오버레이 (이미지 위) */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: overlayRgba }}
-        />
-        {/* 텍스트 가독성 그라디언트 — 모바일 강함, 데스크톱 약함 */}
-        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent md:h-1/2 md:from-black/40 md:via-transparent" />
+    const containerCls =
+      imageFit === "contain"
+        ? "relative w-full aspect-[3/4] min-h-[500px] max-h-[85vh] md:aspect-[16/9]"
+        : "relative w-full h-[85vh] min-h-[500px]";
 
-        {/* 콘텐츠 — 모바일: 하단, 데스크톱: 정중앙 */}
-        <div className="absolute inset-0 flex flex-col justify-end pb-8 md:justify-center md:pb-0">
-          <div className="mx-auto w-full max-w-5xl px-4 text-center">
+    const imageCls =
+      imageFit === "contain"
+        ? "object-cover object-center md:object-contain"
+        : "object-cover object-center";
+
+    return (
+      <section className="relative w-full overflow-hidden bg-black">
+        <div className={containerCls}>
+          <Image
+            src={s.background_image_url!}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className={imageCls}
+          />
+          {/* 색상 오버레이 (이미지 위) */}
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: overlayRgba }}
+          />
+          {/* 텍스트 오버레이 — 절대 위치, 정중앙 정렬 */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
             {s.badge_text && (
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#FF6B00] md:mb-4 md:text-sm">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#FF6B00] md:text-sm">
                 {s.badge_text}
               </p>
             )}
-            <h1 className="mb-4 text-3xl font-extrabold leading-tight text-white drop-shadow-lg md:mb-6 md:text-6xl lg:text-7xl">
+            <h1 className="mt-3 text-3xl font-extrabold leading-tight text-white drop-shadow-lg md:mt-4 md:text-6xl lg:text-7xl">
               {s.headline_main}
               {s.headline_accent && (
                 <>
@@ -321,12 +319,11 @@ function HeroSection({ settings }: { settings: HeroSettings | null }) {
               )}
             </h1>
             {s.subline && (
-              <p className="mb-6 text-base text-gray-100 drop-shadow md:mb-10 md:text-xl">
+              <p className="mt-3 text-base text-white/80 drop-shadow md:mt-4 md:text-xl">
                 {s.subline}
               </p>
             )}
-            {/* 모바일: 풀폭 세로 2개 / 데스크톱: 가로 정렬 */}
-            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4">
+            <div className="mt-6 flex w-full max-w-md flex-col gap-3 md:mt-8 md:w-auto md:max-w-none md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4">
               {renderPrimary(
                 "block w-full rounded-lg bg-[#FF6B00] px-8 py-3 text-base font-bold text-white shadow-lg shadow-[#FF6B00]/25 transition-colors hover:bg-[#e55f00] md:inline-block md:w-auto"
               )}
