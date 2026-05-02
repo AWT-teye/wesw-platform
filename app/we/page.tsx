@@ -10,6 +10,7 @@ type HeroSettings = {
   overlay_opacity: number | null;
   overlay_color: string | null;
   use_image_background: boolean | null;
+  image_fit: "contain" | "cover" | null;
   badge_text: string | null;
   headline_main: string | null;
   headline_accent: string | null;
@@ -25,6 +26,7 @@ const HERO_DEFAULTS: HeroSettings = {
   overlay_opacity: 0.5,
   overlay_color: "#000000",
   use_image_background: false,
+  image_fit: "contain",
   badge_text: "WE SUWON",
   headline_main: "모든 가능성을,",
   headline_accent: "모두에게",
@@ -68,7 +70,7 @@ async function fetchAll() {
     supabase
       .from("hero_settings")
       .select(
-        "background_image_url, overlay_opacity, overlay_color, use_image_background, badge_text, headline_main, headline_accent, subline, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url"
+        "background_image_url, overlay_opacity, overlay_color, use_image_background, image_fit, badge_text, headline_main, headline_accent, subline, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url"
       )
       .eq("is_active", true)
       .order("updated_at", { ascending: false })
@@ -218,6 +220,7 @@ export default async function WeMainPage() {
 function HeroSection({ settings }: { settings: HeroSettings | null }) {
   const s = { ...HERO_DEFAULTS, ...(settings ?? {}) };
   const showImage = !!s.use_image_background && !!s.background_image_url;
+  const imageFit: "contain" | "cover" = s.image_fit === "cover" ? "cover" : "contain";
 
   // overlay color (#RRGGBB) → rgba(...)
   const overlayRgba = (() => {
@@ -232,34 +235,125 @@ function HeroSection({ settings }: { settings: HeroSettings | null }) {
   const isExternalPrimary = !!s.cta_primary_url?.startsWith("http");
   const isExternalSecondary = !!s.cta_secondary_url?.startsWith("http");
 
+  // CTA 버튼 (기본형 / 풀폭형 className 분기)
+  const renderPrimary = (cls: string) => {
+    if (!s.cta_primary_text || !s.cta_primary_url) return null;
+    return isExternalPrimary ? (
+      <a
+        href={s.cta_primary_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cls}
+      >
+        {s.cta_primary_text}
+      </a>
+    ) : (
+      <Link href={s.cta_primary_url} className={cls}>
+        {s.cta_primary_text}
+      </Link>
+    );
+  };
+  const renderSecondary = (cls: string) => {
+    if (!s.cta_secondary_text || !s.cta_secondary_url) return null;
+    return isExternalSecondary ? (
+      <a
+        href={s.cta_secondary_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cls}
+      >
+        {s.cta_secondary_text}
+      </a>
+    ) : (
+      <Link href={s.cta_secondary_url} className={cls}>
+        {s.cta_secondary_text}
+      </Link>
+    );
+  };
+
+  // ───────────── 이미지 배경 모드 (모바일 3:4 cover, 데스크톱 16:9 + image_fit) ─────────────
+  if (showImage) {
+    const desktopFitCls =
+      imageFit === "cover" ? "md:object-cover" : "md:object-contain";
+    return (
+      <section className="relative overflow-hidden bg-[#0a0a0a] aspect-[3/4] min-h-[600px] md:aspect-[16/9] md:min-h-[500px] md:max-h-[80vh]">
+        {/* 모바일: cover (인물 중앙 보존, 잘림 허용) */}
+        <Image
+          src={s.background_image_url!}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center md:hidden"
+        />
+        {/* 데스크톱: 운영자 선택 (contain 기본 / cover 옵션) */}
+        <Image
+          src={s.background_image_url!}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className={`hidden object-center md:block ${desktopFitCls}`}
+        />
+        {/* 색상 오버레이 (이미지 위) */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: overlayRgba }}
+        />
+        {/* 텍스트 가독성 그라디언트 — 모바일 강함, 데스크톱 약함 */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent md:h-1/2 md:from-black/40 md:via-transparent" />
+
+        {/* 콘텐츠 — 모바일: 하단, 데스크톱: 정중앙 */}
+        <div className="absolute inset-0 flex flex-col justify-end pb-8 md:justify-center md:pb-0">
+          <div className="mx-auto w-full max-w-5xl px-4 text-center">
+            {s.badge_text && (
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#FF6B00] md:mb-4 md:text-sm">
+                {s.badge_text}
+              </p>
+            )}
+            <h1 className="mb-4 text-3xl font-extrabold leading-tight text-white drop-shadow-lg md:mb-6 md:text-6xl lg:text-7xl">
+              {s.headline_main}
+              {s.headline_accent && (
+                <>
+                  <br />
+                  <span className="text-[#FF6B00]">{s.headline_accent}</span>
+                </>
+              )}
+            </h1>
+            {s.subline && (
+              <p className="mb-6 text-base text-gray-100 drop-shadow md:mb-10 md:text-xl">
+                {s.subline}
+              </p>
+            )}
+            {/* 모바일: 풀폭 세로 2개 / 데스크톱: 가로 정렬 */}
+            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-4">
+              {renderPrimary(
+                "block w-full rounded-lg bg-[#FF6B00] px-8 py-3 text-base font-bold text-white shadow-lg shadow-[#FF6B00]/25 transition-colors hover:bg-[#e55f00] md:inline-block md:w-auto"
+              )}
+              {renderSecondary(
+                "block w-full rounded-lg border-2 border-[#FF6B00] bg-black/30 px-8 py-3 text-base font-bold text-[#FF6B00] backdrop-blur-sm transition-colors hover:bg-[#FF6B00]/10 md:inline-block md:w-auto md:bg-black/20"
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ───────────── 기본(검정) 배경 모드 — 기존 디자인 유지 ─────────────
   return (
     <section className="relative overflow-hidden bg-[#0a0a0a]">
-      {showImage ? (
-        <>
-          <Image
-            src={s.background_image_url!}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0" style={{ backgroundColor: overlayRgba }} />
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
-        </>
-      ) : (
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#FF6B00]/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#FF6B00]/5 rounded-full blur-3xl" />
-        </div>
-      )}
-      <div className="relative mx-auto max-w-5xl px-4 py-24 md:py-32 text-center">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-[#FF6B00]/10 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-[#FF6B00]/5 blur-3xl" />
+      </div>
+      <div className="relative mx-auto max-w-5xl px-4 py-24 text-center md:py-32">
         {s.badge_text && (
-          <p className="text-[#FF6B00] text-sm font-semibold tracking-widest uppercase mb-4">
+          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#FF6B00]">
             {s.badge_text}
           </p>
         )}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6">
+        <h1 className="mb-6 text-4xl font-extrabold leading-tight text-white md:text-6xl lg:text-7xl">
           {s.headline_main}
           {s.headline_accent && (
             <>
@@ -269,46 +363,14 @@ function HeroSection({ settings }: { settings: HeroSettings | null }) {
           )}
         </h1>
         {s.subline && (
-          <p className="text-lg md:text-xl text-gray-200 mb-10">{s.subline}</p>
+          <p className="mb-10 text-lg text-gray-200 md:text-xl">{s.subline}</p>
         )}
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          {s.cta_primary_text && s.cta_primary_url && (
-            isExternalPrimary ? (
-              <a
-                href={s.cta_primary_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
-              >
-                {s.cta_primary_text}
-              </a>
-            ) : (
-              <Link
-                href={s.cta_primary_url}
-                className="px-8 py-3 bg-[#FF6B00] hover:bg-[#e55f00] text-white font-bold rounded-lg text-base transition-colors shadow-lg shadow-[#FF6B00]/25"
-              >
-                {s.cta_primary_text}
-              </Link>
-            )
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {renderPrimary(
+            "rounded-lg bg-[#FF6B00] px-8 py-3 text-base font-bold text-white shadow-lg shadow-[#FF6B00]/25 transition-colors hover:bg-[#e55f00]"
           )}
-          {s.cta_secondary_text && s.cta_secondary_url && (
-            isExternalSecondary ? (
-              <a
-                href={s.cta_secondary_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors bg-black/20"
-              >
-                {s.cta_secondary_text}
-              </a>
-            ) : (
-              <Link
-                href={s.cta_secondary_url}
-                className="px-8 py-3 border-2 border-[#FF6B00] text-[#FF6B00] hover:bg-[#FF6B00]/10 font-bold rounded-lg text-base transition-colors bg-black/20"
-              >
-                {s.cta_secondary_text}
-              </Link>
-            )
+          {renderSecondary(
+            "rounded-lg border-2 border-[#FF6B00] bg-black/20 px-8 py-3 text-base font-bold text-[#FF6B00] transition-colors hover:bg-[#FF6B00]/10"
           )}
         </div>
       </div>

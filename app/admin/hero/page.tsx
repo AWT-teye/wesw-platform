@@ -9,6 +9,7 @@ const DEFAULTS: HeroSettingsInput = {
   overlay_opacity: 0.5,
   overlay_color: "#000000",
   use_image_background: false,
+  image_fit: "contain",
   badge_text: "WE SUWON",
   headline_main: "모든 가능성을,",
   headline_accent: "모두에게",
@@ -24,7 +25,7 @@ export default async function AdminHeroPage() {
   const { data } = await supabase
     .from("hero_settings")
     .select(
-      "id, background_image_url, overlay_opacity, overlay_color, use_image_background, badge_text, headline_main, headline_accent, subline, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url"
+      "id, background_image_url, overlay_opacity, overlay_color, use_image_background, image_fit, badge_text, headline_main, headline_accent, subline, cta_primary_text, cta_primary_url, cta_secondary_text, cta_secondary_url"
     )
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -38,6 +39,7 @@ export default async function AdminHeroPage() {
           data.overlay_opacity == null ? 0.5 : Number(data.overlay_opacity),
         overlay_color: data.overlay_color ?? "#000000",
         use_image_background: !!data.use_image_background,
+        image_fit: data.image_fit === "cover" ? "cover" : "contain",
         badge_text: data.badge_text ?? "",
         headline_main: data.headline_main ?? "",
         headline_accent: data.headline_accent ?? "",

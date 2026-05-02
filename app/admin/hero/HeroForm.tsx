@@ -62,7 +62,9 @@ export default function HeroForm({ initial }: { initial: HeroSettingsInput }) {
                 <img
                   src={form.background_image_url}
                   alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className={`absolute inset-0 h-full w-full object-center ${
+                    form.image_fit === "cover" ? "object-cover" : "object-contain"
+                  }`}
                 />
                 <div className="absolute inset-0" style={{ backgroundColor: overlayRgba }} />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
@@ -175,6 +177,49 @@ export default function HeroForm({ initial }: { initial: HeroSettingsInput }) {
             <li>형식: <b>WebP 권장</b> (JPG/PNG 도 가능)</li>
             <li>가로형 인물·풍경 사진이 적합하며, 텍스트 가독성을 위해 너무 화려한 이미지는 피해주세요.</li>
           </ul>
+        </div>
+
+        {/* 데스크톱 표시 방식 (모바일은 항상 cover) */}
+        <div className="mt-5">
+          <p className="text-sm font-semibold">데스크톱 이미지 표시 방식</p>
+          <p className="mt-1 text-xs text-gray-500">
+            모바일에서는 인물·주피사체 보존을 위해 항상 화면을 꽉 채워 표시합니다.
+          </p>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-start gap-2 rounded-lg border border-gray-200 p-3 hover:border-[#FF6B00]">
+              <input
+                type="radio"
+                name="image_fit"
+                value="contain"
+                checked={form.image_fit === "contain"}
+                onChange={() => up("image_fit", "contain")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                <span className="font-bold">이미지 전체 표시 (잘리지 않음)</span>
+                <span className="ml-2 rounded bg-[#FF6B00]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#FF6B00]">권장</span>
+                <span className="mt-1 block text-xs text-gray-500">
+                  이미지 비율을 유지하여 전체를 보여줍니다. 양옆 또는 위아래에 배경색 여백이 생길 수 있습니다.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 rounded-lg border border-gray-200 p-3 hover:border-[#FF6B00]">
+              <input
+                type="radio"
+                name="image_fit"
+                value="cover"
+                checked={form.image_fit === "cover"}
+                onChange={() => up("image_fit", "cover")}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                <span className="font-bold">화면 꽉 채우기 (위아래 잘림 가능)</span>
+                <span className="mt-1 block text-xs text-gray-500">
+                  화면을 꽉 채우지만, 비율이 맞지 않으면 이미지 일부가 잘릴 수 있습니다.
+                </span>
+              </span>
+            </label>
+          </div>
         </div>
       </Section>
 

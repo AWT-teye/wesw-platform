@@ -9,6 +9,7 @@ export type HeroSettingsInput = {
   overlay_opacity: number;
   overlay_color: string;
   use_image_background: boolean;
+  image_fit: "contain" | "cover";
   badge_text: string;
   headline_main: string;
   headline_accent: string;
@@ -27,6 +28,7 @@ export async function saveHeroSettings(input: HeroSettingsInput) {
     overlay_opacity: Math.max(0, Math.min(1, Number(input.overlay_opacity) || 0)),
     overlay_color: input.overlay_color || "#000000",
     use_image_background: !!input.use_image_background,
+    image_fit: input.image_fit === "cover" ? "cover" : "contain",
     badge_text: input.badge_text || null,
     headline_main: input.headline_main || null,
     headline_accent: input.headline_accent || null,
